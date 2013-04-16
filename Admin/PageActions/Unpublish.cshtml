@@ -1,0 +1,13 @@
+﻿@{
+
+    Check.User(Can.PublishPage);
+    
+    var userId = WebSecurity.CurrentUserId;
+    var contentId = UrlData[0];
+    if (contentId.IsInt()) {
+        var db = Database.Open((string) App.Database);
+        var commandText = @"UPDATE PageContent SET Published = NULL, PublishedBy = @0 WHERE ContentId = @1";
+        db.Execute(commandText, userId, contentId);
+    }
+    Response.Redirect("~/Admin/Pages/List/");
+}

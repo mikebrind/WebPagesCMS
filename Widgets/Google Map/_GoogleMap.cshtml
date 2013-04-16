@@ -1,0 +1,24 @@
+﻿@using Microsoft.Web.Helpers
+@{
+    var args = HttpUtility.ParseQueryString((string)Page.Args);
+    
+    var location = args["location"];
+    var latitude = args["latitude"];
+    var longitude = args["longitude"];
+    var width = args["width"];
+    var height = args["height"];
+    var zoom = args["zoom"].AsInt(14);
+    var type = args["type"]; // "ROADMAP";
+    var showDirectionsLink = args["showDirectionsLink"].IsOn();
+    var directionsLinkText = args["directionsLinkText"]; //"Get Directions";
+    var pinLatitude = args["pinLatitude"];
+    var pinLongitude = args["pinLongitude"];
+    List<Maps.MapLocation> pushpins = null;
+    if(!pinLatitude.IsEmpty() && !pinLongitude.IsEmpty()) {
+        pushpins = new List<Maps.MapLocation> {
+            new Maps.MapLocation(pinLatitude, pinLongitude)
+        };
+    }
+}
+
+@Maps.GetGoogleHtml(location, latitude, longitude, width, height, zoom, type, showDirectionsLink, directionsLinkText, pushpins)

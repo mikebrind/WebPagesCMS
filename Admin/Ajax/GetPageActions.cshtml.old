@@ -1,0 +1,4 @@
+﻿@{
+    //var db = Database.Open((string) App.Database);
+    //var commandText = "SELECT "
+}

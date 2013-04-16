@@ -1,0 +1,12 @@
+﻿@{
+    Check.User(Can.ArchivePage);
+    
+    var userId = WebSecurity.CurrentUserId;
+    var pageId = UrlData[0];
+    if (pageId.IsInt()) {
+        var db = Database.Open((string) App.Database);
+        var commandText = @"UPDATE Pages SET DateArchived = NULL, ArchivedBy = @0 WHERE PageId = @1";
+        db.Execute(commandText, userId, pageId);
+    }
+    Response.Redirect("~/Admin/Pages/List/");
+}

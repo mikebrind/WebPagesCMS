@@ -1,0 +1,67 @@
+﻿@using System.Xml.Linq
+@using Resources
+@{
+    Check.User(Can.ManageWidgets);
+    
+    var widgetId = UrlData[0].AsInt();
+    var activeLayerId = UrlData[1].AsInt();
+    var db = Database.Open((string)App.Database);
+    var commandText = @"SELECT HtmlWidgets.HtmlWidgetId, HtmlWidgets.WidgetName, HtmlWidgets.Content, Widgets.ZoneId, Widgets.LayerId, Widgets.DisplayOrder, Widgets.Theme, Widgets.CssClass 
+                        FROM HtmlWidgets INNER JOIN Widgets ON HtmlWidgets.HtmlWidgetId = Widgets.HtmlWidgetId 
+                        WHERE Widgets.WidgetId = @0";
+    var widget = db.QuerySingle(commandText, widgetId);
+
+    commandText = @"SELECT LayerId, LayerName FROM Layers";
+    var layers = db.Query(commandText).Select(l => new SelectListItem {
+        Value = l.LayerId.ToString(),
+        Text = l.LayerName,
+        Selected = l.LayerId == widget.LayerId
+    });
+
+    var xml = (XDocument)App.ZonesXml;
+    var zones = xml.Descendants("zone").Select(z => new SelectListItem {
+        Value = z.Element("id").Value,
+        Text = z.Element("name").Value,
+        Selected = z.Element("id").Value == widget.ZoneId.ToString()
+    });
+
+    Validation.RequireField("Content");
+    Validation.Add("ZoneId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    Validation.Add("LayerId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    Validation.Add("DisplayOrder", Validator.Regex(@"^\d*$", "Must be a number"));
+    
+    if (IsPost && Validation.IsValid()) {
+        var layerId = Request["LayerId"].AsInt();
+        var zoneId = Request["ZoneId"].AsInt();
+        var displayOrder = Request["DisplayOrder"].AsInt();
+        var cssClass = Request["CssClass"].OrDbNull();
+        var content = Request.Unvalidated("Content");
+        commandText = @"UPDATE HtmlWidgets SET Content = @0 WHERE HtmlWidgetId = @1";
+        db.Execute(commandText, content, widget.HtmlWidgetId);
+        commandText = @"UPDATE Widgets SET ZoneId = @0, LayerId = @1, CssClass = @2, DisplayOrder = @3, Args = NULL WHERE WidgetId = @4";
+        db.Execute(commandText, zoneId, layerId, cssClass, displayOrder, widgetId);
+        Response.Redirect("~/Admin/Widgets/ManageWidgets/" + activeLayerId);
+    }
+    
+}
+<form method="post">
+    <fieldset>
+        <legend>Edit @widget.WidgetName HTML Widget</legend>
+        @ControlGroup.DropDownList("Select Layer: ", "LayerId", layers, " --Select Layer-- ")
+        @ControlGroup.DropDownList("Select Zone: ", "ZoneId", zones, " --Select Zone-- ")
+        @ControlGroup.TextBox("Display Order: ", "DisplayOrder", widget.DisplayOrder.ToString(), new { style = "width: 20px" })
+        @ControlGroup.TextBox("CSS Class: ", "CssClass", widget.CssClass, helperText: AdminResource.WidgetCssHelpText)
+        @ControlGroup.HtmlTextArea("Content: ", "Content", widget.Content, new { style = "width: 100%; height: 500px" })
+        @ControlGroup.Button()
+    </fieldset>
+</form>
+@section Script{
+    <script type="text/javascript" src="/Scripts/ckeditor/ckeditor.js"></script>
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            CKEDITOR.replace('Content');
+        });
+        //]]>
+    </script>
+}

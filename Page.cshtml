@@ -1,0 +1,63 @@
+﻿@using Microsoft.Web.Helpers
+@{
+    
+    var stem = Context.GetRouteValue("stem");
+    var commandText = string.Empty;
+    dynamic page = null;
+    var db = Database.Open((string)App.Database);
+    if (stem.IsEmpty()) {
+        commandText = @"SELECT TOP 1 Pages.PageId, Layout, Title, MetaDescription, MetaKeywords, PageContent.Content 
+                        FROM Pages INNER JOIN PageContent ON Pages.PageId = PageContent.PageId 
+                        WHERE IsHomePage = 1 AND Published < GetDate() 
+                        ORDER BY Published DESC";
+        page = db.QuerySingle(commandText);
+    }
+    else {
+        commandText = @"SELECT TOP 1 Pages.PageId, Layout, Title, MetaDescription, MetaKeywords, PageContent.Content 
+                        FROM Pages INNER JOIN PageContent ON Pages.PageId = PageContent.PageId 
+                        WHERE Url = @0 AND Published < GetDate() 
+                        ORDER BY Published DESC";
+        page = db.QuerySingle(commandText, stem);
+    }
+    if (page != null) {
+        Page.Title = page.Title;
+        Layout = Themes.GetResourcePath("Layouts", page.Layout);
+        commandText = @"SELECT WidgetName, CssClass, DisplayOrder, '' AS Content, 0 AS WidgetType, Args, Widgets.ZoneId 
+                        FROM Widgets WHERE WidgetName IS NOT NULL AND Theme = @0 
+                        AND Widgets.LayerId IN (SELECT LayerId From PagesInLayers WHERE PageId = @1)
+                        UNION ALL
+                        SELECT HtmlWidgets.WidgetName, CssClass, DisplayOrder, Content, 1 AS WidgetType, NULL AS Args, Widgets.ZoneId
+                        FROM Widgets INNER JOIN HtmlWidgets ON Widgets.HtmlWidgetId = HtmlWidgets.HtmlWidgetId  
+                        WHERE Theme = @0 AND Widgets.LayerId IN (SELECT LayerId From PagesInLayers WHERE PageId = @1)
+                        UNION ALL
+                        SELECT Menus.MenuName AS WidgetName, Menus.CssClass, Widgets.DisplayOrder, '' AS Content, 2 AS WidgetType, NULL As Args, Widgets.ZoneId
+                        FROM Widgets INNER JOIN Menus ON Widgets.MenuId = Menus.MenuId 
+                        WHERE Theme = @0 AND Widgets.LayerId IN (SELECT LayerId FROM PagesInLayers WHERE PageId = @1)";
+
+        var widgets = db.Query(commandText, Themes.CurrentTheme, (int)page.PageId).OrderBy(w => w.ZoneID).ThenBy(w => w.DisplayOrder);
+        Page.Widgets = widgets;
+    }
+    else {
+        commandText = @"SELECT COUNT(*) FROM Users";
+        var result = db.QueryValue(commandText);
+        if (result == 0) {
+            Response.Redirect("~/firstrun");
+        }
+        Response.SetStatus(HttpStatusCode.NotFound);
+    }
+}
+
+@if(page != null){
+    @Html.Raw(page.Content)
+}
+
+@section Meta{
+    @if (page != null) {
+        if (page.MetaDescription != null) {
+            <meta name="description" content="@page.MetaDescription" />
+        }
+        if (page.MetaKeywords != null) {
+            <meta name="keywords" content="@page.MetaKeywords" />
+        }
+    }
+}

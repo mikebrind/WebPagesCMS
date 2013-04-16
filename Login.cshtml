@@ -1,0 +1,28 @@
+﻿@{
+    Layout = "~/Admin/_AdminLayout.cshtml";
+    Validation.RequireFields("UserName", "Password");
+    var username = Request["UserName"];
+    var password = Request["Password"];
+    var rememberMe = Request.Form["RememberMe"].AsBool();
+    
+    if (IsPost) {
+        if (WebSecurity.Login(username, password, rememberMe)) {
+            var returnUrl = Request.QueryString["ReturnUrl"];
+            if (returnUrl.IsEmpty()) {
+                Response.Redirect("~/Admin/");
+            }
+            else {
+                Context.RedirectLocal(returnUrl);
+            }
+        }
+    }
+}
+<form method="post">
+    <fieldset>
+        <legend>Log In</legend>
+        @ControlGroup.TextBox("User Name: ", "UserName")
+        @ControlGroup.Password("Password: ", "Password")
+        @ControlGroup.InlineCheckBox("Remember Me ", "RememberMe", rememberMe, new { @value = "true" })
+        @ControlGroup.Button(text: "Log In")
+    </fieldset>
+</form>

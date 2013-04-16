@@ -1,0 +1,9 @@
+﻿@{
+    var layout = Request["Layout"];
+    var db = Database.Open((string) App.Database);
+    var commandText = @"SELECT LayerId, LayerName FROM Layers WHERE Layout = @0";
+    var layers = db.Query(commandText, layout).Select(l => new SelectListItem { Value = l.LayerId.ToString(), Text = l.LayerName });
+    var defaultOption = new List<SelectListItem>{ new SelectListItem {Value = "", Text = " --Select Layer-- "}};
+    var result = defaultOption.Concat(layers);
+    Json.Write(result, Response.Output);
+}

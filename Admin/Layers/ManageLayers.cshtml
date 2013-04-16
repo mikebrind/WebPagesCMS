@@ -1,0 +1,87 @@
+﻿@{
+    Check.User(Can.ManagePagesInLayer);
+    
+    var db = Database.Open((string) App.Database);
+    var result = string.Empty;
+    var activeLayerDescription = string.Empty;
+
+    var commandText = @"SELECT DISTINCT Layout FROM Pages";
+     var layouts = db.Query(commandText).Select(l => l.Layout).Distinct().Select(l => new SelectListItem {
+        Text = l
+    });
+    
+    commandText = @"SELECT LayerId, LayerName, Description, Layout FROM Layers";
+    var layerData = db.Query(commandText);
+
+    var activeLayerId = Request["LayerId"].AsInt();
+    if (activeLayerId != 0) {
+        activeLayerDescription = layerData.First(l => l.LayerId == activeLayerId).Description;
+    }
+
+    if (IsPost && !Request["LayerId"].IsEmpty() && Request["UpdateLayer"].AsBool()) {
+        var layerId = Request["LayerId"];
+        commandText = @"DELETE FROM PagesInLayers WHERE LayerId = @0";
+        db.Execute(commandText, layerId);
+        commandText = @"INSERT INTO PagesInLayers (LayerId, PageId) VALUES (@0, @1)";
+        foreach (var pageId in Request["isInLayer"].Split(',')) {
+            db.Execute(commandText, layerId, pageId );
+        }
+        result = "Layer updated";
+    }
+
+    var layers = layerData.Where(l => l.Layout.Equals(Request["Layout"])).Select(l => new SelectListItem {
+        Value = l.LayerId.ToString(), 
+        Text = l.LayerName
+    });
+    
+    commandText = @"SELECT PageId, Title FROM Pages WHERE Layout = @0";
+    var allPages = db.Query(commandText, Request["Layout"]);
+    commandText = @"SELECT PageId FROM PagesInLayers INNER JOIN Layers ON Layers.LayerId = PagesInLayers.LayerId WHERE PagesInLayers.LayerId = @0";
+    var pagesInLayer = db.Query(commandText, activeLayerId);
+    var grid = new WebGrid(allPages, canSort: false, canPage: false);
+    
+    
+}
+
+<form method="post" class="form-horizontal">
+    <fieldset>
+        <legend>Manage Layers</legend>
+        @ControlGroup.DropDownList("Select Layout: ", "Layout", layouts, " --Select Layout-- ", Request["Layout"] )
+        @if (!Request["Layout"].IsEmpty()) {
+            @ControlGroup.DropDownList("Choose Layer: ", "LayerId", layers, " --Select Layer-- ", Request["LayerId"] )
+        }
+    </fieldset>
+</form>
+<div>@result</div>
+<div>
+    @if (activeLayerId > 0 && allPages.Any()) {
+        <div>@activeLayerDescription</div>
+        <form method="post" class="form-horizontal">
+            @grid.GetHtml(
+                tableStyle: "table",
+                columns: grid.Columns(
+                    grid.Column("Title", "Page"),
+                    grid.Column("PageId", "Is In Layer", format: @<input type="checkbox" name="isInLayer" value="@item.PageId" checked="@(pagesInLayer.FirstOrDefault(p => p.PageId == item.PageId) != null)"/>)
+                    )
+                 )
+            @Html.Hidden("LayerId", activeLayerId) @Html.Hidden("UpdateLayer", true)
+            @ControlGroup.Button()
+        </form>
+    }
+</div>
+
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            $('#Layout').change(function () {
+                $('#LayerId').val('');
+                $(this).closest('form').submit();
+            });
+            $('#LayerId').change(function() {
+                $(this).closest('form').submit();
+            });
+        });
+        //]]>
+    </script>
+}

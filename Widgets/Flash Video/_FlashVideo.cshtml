@@ -1,0 +1,21 @@
+﻿@using Microsoft.Web.Helpers
+@{
+    var args = HttpUtility.ParseQueryString((string)Page.Args);
+    
+    var path = args["path"];
+    var width = args["width"];
+    var height = args["height"];
+    var play = args["play"].IsOn();
+    var loop = args["loop"].IsOn();
+    var menu = args["menu"].IsOn();
+    var bgColor = args["bgColor"];
+    var quality = args["quality"];
+    var scale = args["scale"];
+    var windowMode = args["windowMode"];
+    var baseUrl = args["baseUrl"];
+    var version = args["version"];
+    object options = args["options"];
+    object htmlAttributes = args["htmlAttributes"];
+    var embedName = args["embedName"];
+}
+@Video.Flash(path, width, height, play, loop, menu, bgColor, quality, scale, windowMode, baseUrl, version, options, htmlAttributes, embedName)

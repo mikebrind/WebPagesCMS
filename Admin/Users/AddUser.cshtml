@@ -1,0 +1,38 @@
+﻿@{
+    Check.User(Can.CreateUser);
+    
+    var roles = Roles.GetAllRoles().Select(r => new SelectListItem {
+        Value = r, 
+        Text = r
+    });
+    
+    Validation.RequireFields("UserName", "Password", "Role");
+    
+    var username = Request["UserName"];
+    var password = Request["Password"];
+    var role = Request["Role"];
+    var message = string.Empty;
+    
+    if (IsPost && Validation.IsValid()) {
+        try {
+            WebSecurity.CreateUserAndAccount(username, password);
+            Roles.AddUsersToRoles(new[]{username}, new[]{role});
+            username = null;
+            role = null;
+            message = string.Format("{0} added. Add another?", username);
+        }
+        catch (MembershipCreateUserException ex) {
+            ModelState.AddError("UserName", ex.Message);
+        }
+    }
+}
+<form method="post">
+    <fieldset>
+        <legend>Add New User</legend>
+        <div>@message</div>
+        @ControlGroup.TextBox("User Name: ", "UserName", username)
+        @ControlGroup.Password("Password: ", "Password")
+        @ControlGroup.DropDownList("Role: ", "Role", roles, " --Select Role-- ", role)
+        @ControlGroup.Button()
+    </fieldset>
+</form>

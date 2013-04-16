@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<widget>
+    <name>Google Map</name>
+    <description>Helper for displaying a point on a Google Map</description>
+    <params>
+        <param>
+            <name>location</name>
+            <fieldname>Location</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Address</description>
+            <required />
+        </param>
+        <param>
+            <name>latitude</name>
+            <fieldname>Latitude</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Latitude</description>
+            <required />
+        </param>
+        <param>
+            <name>longitude</name>
+            <fieldname>Longitude</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Longitude</description>
+            <required />
+        </param>
+        <param>
+            <name>width</name>
+            <fieldname>Width</fieldname>
+            <type>string</type>
+            <default>300</default>
+            <description>Width of map in pixels</description>
+            <required />
+        </param>
+        <param>
+            <name>height</name>
+            <fieldname>Height</fieldname>
+            <type>string</type>
+            <default>300</default>
+            <description>Height of map in pixels</description>
+            <required />
+        </param>
+        <param>
+            <name>zoom</name>
+            <fieldname>Zoom</fieldname>
+            <type>int</type>
+            <default>14</default>
+            <description>Address</description>
+            <required />
+        </param>
+        <param>
+            <name>type</name>
+            <fieldname>Type</fieldname>
+            <type>string</type>
+            <default>ROADMAP</default>
+            <description>Map type</description>
+            <required />
+        </param>
+        <param>
+            <name>showDirectionsLink</name>
+            <fieldname>Show Directions Link</fieldname>
+            <type>bool</type>
+            <default>true</default>
+            <description>Determines whether the Show Directions link is displayed</description>
+            <required />
+        </param>
+        <param>
+            <name>directionsLinkText</name>
+            <fieldname>Directions Link Text</fieldname>
+            <type>string</type>
+            <default>Get Directions</default>
+            <description>The text for the Show Directions link if it is displayed</description>
+            <required />
+        </param>
+        <param>
+            <name>pinLatitude</name>
+            <fieldname>Pin Latitude</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Latitude for the push pin</description>
+            <required />
+        </param>
+        <param>
+            <name>pinLongitude</name>
+            <fieldname>Pin Longitude</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Longitude for the push pin</description>
+            <required />
+        </param>
+    </params>
+</widget>

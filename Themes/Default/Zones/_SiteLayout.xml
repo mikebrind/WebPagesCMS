@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<layout>
+    <name>default</name>
+    <description>The default layout with header, footer and two columns</description>
+    <zones>
+        <zone>
+            <id>1</id>
+            <name>Header</name>
+            <description>The head area</description>
+        </zone>
+        <zone>
+            <id>2</id>
+            <name>Nav</name>
+            <description>Main Navigation area</description>
+        </zone>
+        <zone>
+            <id>3</id>
+            <name>Left Column</name>
+            <description>The left column</description>
+        </zone>
+        <zone>
+            <id>4</id>
+            <name>Pre Render Body</name>
+            <description>Main content area before RenderBody</description>
+        </zone>
+        <zone>
+            <id>5</id>
+            <name>Post Render Body</name>
+            <description>Main content area after RenderBody</description>
+        </zone>
+        <zone>
+            <id>6</id>
+            <name>Right Column</name>
+            <description>The right column</description>
+        </zone>
+        <zone>
+            <id>7</id>
+            <name>Foot</name>
+            <description>Footer area</description>
+        </zone>
+        <zone>
+            <id>8</id>
+            <name>Analytics</name>
+            <description>Recommended position for Analytics service code</description>
+        </zone>
+    </zones>
+</layout>

@@ -1,0 +1,42 @@
+﻿@using System.Text.RegularExpressions;
+@using Resources;
+@{
+    Check.User(Can.AddMenu);
+    
+    Validation.Add("Name", Validator.Required());
+    Validation.Add("Orientation", Validator.Required());
+    var result = "";
+    if(IsPost && Validation.IsValid()){
+        var db = Database.Open((string)App.Database);
+        var name = Request["Name"];
+        var cssClass = Request["CssClass"];
+        if(cssClass.IsEmpty()){
+            cssClass = Regex.Replace(name.Trim(), @"\w", "-");
+        }
+        var orientation = Request["Orientation"];
+        var commandText = @"INSERT INTO Menus (MenuName, CssClass, Orientation) VALUES (@0, @1, @2)";
+        db.Execute(commandText, name, cssClass, orientation);
+        var id = (int) db.GetLastInsertId();
+        Response.Redirect("~/Admin/Menus/MenuManager/" + id);
+    }
+}
+
+<form method="post">
+    <fieldset>
+        <legend>Add Menu</legend>
+        @ControlGroup.TextBox("Name: ", "Name")
+        @ControlGroup.TextBox("CSS Class: ", "CssClass", helperText: AdminResource.MenuCssHelpText)
+        @ControlGroup.RadioButtonGroup("Orientation: ", "Orientation", new[]{"Horizontal", "Vertical"})
+        @ControlGroup.Button()
+    </fieldset>
+</form> 
+
+@section Script{
+    <script type="text/javascript">
+        //<![CDATA[
+        $('#Name').change(function () {
+            $('#CssClass').val($(this).val().trim().replace(/\ /g, '-').toLowerCase());
+        });
+        //]]>
+    </script>
+}

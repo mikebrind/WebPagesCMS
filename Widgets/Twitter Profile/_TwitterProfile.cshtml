@@ -1,0 +1,44 @@
+﻿@{
+    var args = HttpUtility.ParseQueryString((string)Page.Args);
+
+    var userName = args["userName"];
+    var id = args["id"];
+    var theme = args["theme"];
+    var linkColor = args["linkColor"];
+    var height = args["height"];
+    var width = args["width"];
+
+    var noheader = args["noheader"].IsOn();
+    var nofooter = args["nofooter"].IsOn();
+    var noborders = args["noborders"].IsOn();
+    var transparent = args["transparent"].IsOn();
+
+    var borderColor = args["borderColor"];
+    var lang = args["lang"];
+
+    var dataChrome = string.Empty;
+    if (noheader) {
+        dataChrome = "noheader";
+    }
+    if (nofooter) {
+        if (!dataChrome.IsEmpty()) {
+            dataChrome += " ";
+        }
+        dataChrome += "nofooter";
+    }
+    if (noborders) {
+        if (!dataChrome.IsEmpty()) {
+            dataChrome += " ";
+        }
+        dataChrome += "noborders";
+    }
+    if (transparent) {
+        if (!dataChrome.IsEmpty()) {
+            dataChrome += " ";
+        }
+        dataChrome += "noborders";
+    }
+}
+
+<a class="twitter-timeline" href="https://twitter.com/@userName" data-widget-id="@id" @(theme != null ? Html.Raw(string.Format("data-theme=\"{0}\"", theme)) : null) @(linkColor != null ? Html.Raw(string.Format("data-link-color=\"{0}\"", linkColor)) : null) @(height != null ? Html.Raw(string.Format("height=\"{0}\"", height)) : null) @(width != null ? Html.Raw(string.Format("width=\"{0}\"", width)) : null) @(!string.IsNullOrEmpty(dataChrome) ? Html.Raw(string.Format("data-chrome=\"{0}\"", dataChrome)) : null) @(borderColor != null ? Html.Raw(string.Format("data-border-color=\"{0}\"", borderColor)) : null) @(lang != null ? Html.Raw(string.Format("data-lang=\"{0}\"", lang)) : null)>Tweets by @@@userName</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>

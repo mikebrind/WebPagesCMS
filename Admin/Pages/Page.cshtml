@@ -1,0 +1,183 @@
+﻿@using Microsoft.Web.Helpers
+@using Resources;
+@{
+    Check.User(new[]{Can.AddPage, Can.EditPage, Can.PublishPage, Can.AddItemsToMenu});
+    
+    var userId  = WebSecurity.CurrentUserId;
+    var layers = Enumerable.Empty<SelectListItem>();
+    Validation.Add("Title", Validator.Required("You must provide a title"));
+    
+    Validation.Add("Content", Validator.Required("You must provide some content"));
+    Validation.Add("MetaDescription", Validator.StringLength(250));
+    Validation.Add("MenuOrder", Validator.Regex(@"^\d*$", "Must be a number"));
+    
+    var db = Database.Open((string)App.Database);
+    var commandText = @"SELECT Pages.PageId, Layout, Title, Url, Content, IsHomePage, MetaDescription, MetaKeywords, Published, Layout 
+                        FROM Pages INNER JOIN PageContent ON Pages.PageId = PageContent.PageId 
+                        WHERE ContentId = @0 AND DateArchived IS NULL";
+
+    var contentId = UrlData[0].AsInt();
+    var page = db.QuerySingle(commandText, contentId);
+
+    int pageId = page != null ? page.PageId : 0;
+    
+    var publishLater = Request["PublishLater"];
+    if (page != null) {
+        if (page.Published != null) {
+            if ((DateTime) page.Published > DateTime.Now) {
+                publishLater = page.Published.ToString("yyyy-MM-dd hh:mm");
+            }
+        }
+    }
+    else {
+        Validation.Add("Layout", Validator.Required("You must select a layout"));
+    }
+    
+    commandText = @"SELECT Menus.MenuId, Menus.MenuName, MenuItems.MenuText FROM MenuItems 
+                    INNER JOIN Menus ON MenuItems.MenuId = Menus.MenuId WHERE MenuItems.PageId = @0";
+    var currentMenus = db.Query(commandText, pageId);
+
+    commandText = @"SELECT MenuId, MenuName FROM Menus WHERE MenuId NOT IN (SELECT MenuId FROM MenuItems WHERE PageId = @0) ";
+    var availableMenus = db.Query(commandText, pageId).Select(m => new SelectListItem {
+        Value = m.MenuId.ToString(),
+        Text = m.MenuName
+    });
+
+    var layouts = Directory.GetFiles(Server.MapPath(Themes.ThemeDirectory + Themes.CurrentTheme + "/Layouts")).Select(f => new SelectListItem {
+        Text = Path.GetFileName(f),
+        Selected = page != null ? Path.GetFileName(f) == page.Layout : false
+    } );
+    
+    if (IsPost && Validation.IsValid()) {
+        var title = Request["Title"];
+        var homePage = !Request["HomePage"].IsEmpty();
+        var url = Request["PageUrl"];
+        var layout = Request["Layout"];
+        if (!homePage) {
+            url = url.IsEmpty() ? title.ToLower().Trim().Replace(" ", "-") : Request["PageUrl"];
+        }
+        else {
+            url = string.Empty;
+        }
+        var content = Request.Unvalidated("Content");
+        var metaDescription = Request["MetaDescription"].OrDbNull();
+        var metaKeywords = Request["Metakeywords"].OrDbNull();
+        var menuId = Request["MenuId"];
+        if (homePage) {
+            commandText = @"UPDATE Pages SET IsHomePage = 0";
+            db.Execute(commandText);
+        }
+        if (pageId == 0) {
+            commandText = @"INSERT INTO Pages (Title, Url, IsHomePage, MetaDescription, MetaKeywords, Layout) VALUES (@0, @1, @2, @3, @4, @5)";
+            db.Execute(commandText, title, url, homePage, metaDescription, metaKeywords, layout);
+            pageId = (int)db.GetLastInsertId();
+            commandText = @"INSERT INTO PagesInLayers (PageId, LayerId) VALUES (@0, @1)";
+            db.Execute(commandText, pageId, Request["LayerId"]);
+        }
+        else {
+            commandText = "UPDATE Pages SET Title = @0, Url = @1, IsHomePage = @2, MetaDescription = @3, MetaKeywords = @4 WHERE PageId = @5";
+            db.Execute(commandText, title, url, homePage, metaDescription, metaKeywords, pageId);
+        }
+        
+        commandText = @"INSERT INTO PageContent (PageId, Content, Published, CreatedBy, PublishedBy) VALUES (@0, @1, @2, @3, @4)";
+        object datePublished;
+        switch (Request["Action"]) {
+            case "Save":
+                datePublished = DBNull.Value;
+                break;
+            case "PublishLater":
+                datePublished = DateTime.Parse(Request["PublishLater"]);
+                break;
+            default:
+                datePublished = DateTime.Now;
+                break;
+        }
+        db.Execute(commandText, pageId, content, datePublished, userId, userId);
+        
+        if (!menuId.IsEmpty()) {
+            var menuText = Request["MenuText"].IsEmpty() ? title : Request["MenuText"];
+            var menuOrder = Request["MenuOrder"].AsInt();
+            commandText = @"INSERT INTO MenuItems (MenuId, MenuText, MenuOrder, PageId) VALUES (@0, @1, @2, @3)";
+            db.Execute(commandText, menuId, menuText, menuOrder, pageId);
+        }
+        Response.Redirect("~/Admin/Pages/List/");
+    }
+}
+
+<form method="post">
+    <fieldset>
+        <legend>@(UrlData[0].IsEmpty() ? "New" : "Edit") Page</legend>
+        @ControlGroup.TextBox("Title: ", "Title", page != null ? page.Title : null,  new {style = "width:100%;"})
+        @if (page == null) {
+            @ControlGroup.DropDownList("Layout Page: ", "Layout", layouts, " --Select Layout-- ")
+            @ControlGroup.DropDownList("Default Layer: ", "LayerId", layers, " --Select Layer-- ")
+        }
+        @ControlGroup.CheckBox("Home Page? ", "HomePage", page != null ? page.IsHomePage == true : false)
+        @ControlGroup.TextBox("Page Url: ", "PageUrl", page != null ? page.Url : null, helperText: AdminResource.UrlHelpText)
+        @ControlGroup.HtmlTextArea("Content: ", "Content", page != null ? page.Content : null, new {style = "width:100%; height:500px"})
+        <div>
+            <p>Current Menu(s)</p>
+            @if (currentMenus.Any()) {
+                <ul>
+                    @foreach (var menu in currentMenus) {
+                        <li><a href="~/Admin/Menus/MenuManager/@menu.MenuId">@menu.MenuName</a></li>
+                    }
+                </ul>
+            } 
+        </div>
+        @if (availableMenus.Any() && Permissions.User(Can.AddItemsToMenu)) {
+            @ControlGroup.CheckBox("Add To Menu: ", "ShowOnMenu")
+            <div id="menuOptions">
+                @ControlGroup.DropDownList("Menu: ", "MenuId", availableMenus, "Choose Menu")
+                @ControlGroup.TextBox("Menu Text: ", "MenuText", page !=null ? page.Title : null)
+                @ControlGroup.TextBox("Menu Order: ", "MenuOrder", textBoxHtmlAttributes: new { style = "width:20px" })
+            </div>
+        }
+        @ControlGroup.TextArea("Meta Description: ", "MetaDescription", page != null ?  page.MetaDescription : null, new{style = "width: 100%; height: 60px;" })
+        @ControlGroup.TextArea("Meta Keywords: ", "MetaKeywords", page != null ? page.MetaKeywords : null, new{style = "width: 100%; height: 60px;" })
+        <div class="control-group">
+            <div class="controls">
+                <button class="btn btn-primary" name="Action" value="Save" type="submit">Save</button>
+                @if (Permissions.User(Can.PublishPage)) {
+                    <button class="btn btn-warning" name="Action" value="Publish" type="submit">Publish Now</button>
+                    <button class="btn btn-success" name="Action" value="PublishLater" type="submit" disabled="disabled">Publish Later: </button>
+                    @Html.TextBox("PublishLater", publishLater, new {style = "margin-bottom: 0;", placeholder = "Enter publish date and time"})
+                }
+            </div>
+        </div>
+    </fieldset>
+</form>
+<div id="datePicker-space">&nbsp;</div>
+@section Script{
+    <script type="text/javascript" src="/Scripts/bootstrap-datetimepicker.min.js"></script>
+    <script type="text/javascript" src="/Scripts/cascade.js"></script>
+    <script type="text/javascript" src="/Scripts/ckeditor/ckeditor.js"></script>
+    <script>
+        //<![CDATA[
+        $(function() {
+            CKEDITOR.replace('Content');
+            
+            $('#Layout').cascade({
+                url: '/Admin/Ajax/GetLayers/',
+                paramName: 'Layout',
+                childSelect: $('#LayerId')
+            });
+            
+            $('#PublishLater').datetimepicker({ format: "yyyy-MM-dd hh:ii" });
+            $('#PublishLater').change(function () {
+                $('.btn-success').removeAttr('disabled');
+            });
+            $('#menuOptions').hide();
+            
+            $('#Title').change(function () {
+                $('#PageUrl').val($(this).val().trim().replace(/\ /g, '-').toLowerCase());
+                $('#MenuText').val($(this).val().trim());
+            });
+            $('#div-MenuId, #div-MenuText').hide();
+            $('#ShowOnMenu').change(function () {
+                $('#menuOptions').toggle();
+            });
+        });
+        //]]>
+    </script> 
+}

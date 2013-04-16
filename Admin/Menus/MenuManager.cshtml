@@ -1,0 +1,129 @@
+﻿@{
+    Check.User(new[] {Can.AddItemsToMenu, Can.DeleteItemsFromMenu, Can.EditMenuItems});
+    
+    Page.Title = "Manage Menus";
+    WebGrid grid = null;
+    var menuId = 0;
+    var db = Database.Open((string)App.Database);
+    var commandText = @"SELECT MenuId, MenuName FROM Menus";
+    var menus = db.Query(commandText).Select(m => new SelectListItem {
+        Value = m.MenuId.ToString(),
+        Text = m.MenuName,
+        Selected = m.MenuId == UrlData[0].AsInt()
+    });
+
+    if (UrlData[0].IsInt()) {
+        menuId = UrlData[0].AsInt();
+        commandText = @"SELECT MenuItemId, MenuText, CssClass, Target, MenuOrder FROM MenuItems WHERE MenuId = @0 ORDER BY MenuOrder";
+        var menuItems = db.Query(commandText, menuId);
+        grid = new WebGrid(menuItems);
+    }
+}
+
+<form method="post" class="form-horizontal">
+    <fieldset>
+        <legend>Manage Menu</legend>
+   
+        @ControlGroup.DropDownList("Choose Menu: ", "MenuId", menus, "Choose Menu")
+        
+        <div id="menuItems">
+            @if (grid != null) {
+                <div>
+                    @if (Permissions.User(Can.AddItemsToMenu)) {
+                        <button class="btn btn-mini btn-success" type="button">Add Item</button>
+                    }
+                </div>
+        
+                @grid.GetHtml(
+                    tableStyle: "table",
+                    columns: grid.Columns(
+                        grid.Column("",
+                                    style: "col1",
+                                    format: @<text>
+                                                @if (Permissions.User(Can.EditMenuItems)) {
+                                                    <button class="edit-menuItem display-mode btn btn-mini btn-primary" id="@item.MenuItemId">Edit</button>
+                                                }
+                                                @if (Permissions.User(Can.DeleteItemsFromMenu)) {
+                                                    <button class="display-mode btn btn-mini btn-danger" id="@item.MenuItemId">Remove</button>
+                                                }
+                                                @if (Permissions.User(Can.EditMenuItems)) {
+                                                    <button class="save-menuItem edit-mode btn btn-mini btn-primary" id="@item.MenuItemId">Save</button>
+                                                }
+                                                <button class="cancel-menuItem edit-mode btn btn-mini btn-warning" id="@item.MenuItemId">Cancel</button>
+                                             </text>),
+                        grid.Column("MenuText",
+                                    header: "Menu Text",
+                                    style: "col2",
+                                    format: @<text>
+                                                 <span id="menuText" class="display-mode">@item.MenuText</span>
+                                                 @Html.TextBox("MenuText", item.MenuText, new { @class = "edit-mode", style = "width:100px;" })
+                                             </text>),
+                        grid.Column("CssClass",
+                                    header: "CSS Class",
+                                    style: "col3",
+                                    format: @<text>
+                                                 <span id="cssClass" class="display-mode">@item.CssClass</span>
+                                                 @Html.TextBox("CssClass", item.CssClass, new { @class = "edit-mode", style = "width:100px" })
+                                             </text>),
+                        grid.Column("Target",
+                                    style: "col3",
+                                    format: @<text>
+                                                 <span id="target" class="display-mode">@item.Target</span>
+                                                 @Html.TextBox("Target", item.Target, new { @class = "edit-mode", style = "width:50px" })
+                                             </text>),
+                        grid.Column("MenuOrder",
+                                    header: "Menu Order",
+                                    style: "col3",
+                                    format: @<text>
+                                                 <span id="menuOrder" class="display-mode">@item.MenuOrder</span>
+                                                 @Html.TextBox("MenuOrder", item.MenuOrder, new { @class = "edit-mode", style = "width:20px" })
+                                             </text>)
+                        )
+                     )
+            }
+        </div>
+
+    </fieldset>
+</form>
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            $('.btn-success').click(function() {
+                location.href = '/Admin/Menus/AddMenuItem/@menuId';
+            });
+            $('.btn-danger').click(function() {
+
+            });
+            $('#MenuId').change(function() {
+                location.href = '/Admin/Menus/MenuManager/' + $(this).val();
+            });
+            $('.edit-mode').hide();
+            $('#menuItems').on('click', '.edit-menuItem, .cancel-menuItem', function (e) {
+                e.preventDefault();
+                var tr = $(this).parents('tr:first');
+                tr.find('.edit-mode, .display-mode').toggle();
+            });
+            $('#menuItems').on('click', '.save-menuItem', function (e) {
+                e.preventDefault();
+                var tr = $(this).parents('tr:first');
+                var menuItemId = $(this).prop('id');
+                var menuText = tr.find('#MenuText').val();
+                var cssClass = tr.find('#CssClass').val();
+                var target = tr.find('#Target').val();
+                var menuOrder = tr.find('#MenuOrder').val();
+                $.post(
+                    '/Admin/Ajax/UpdateMenuItem',
+                    { MenuItemId: menuItemId, MenuText: menuText, CssClass: cssClass, Target: target, MenuOrder: menuOrder },
+                    function (menuItem) {
+                        tr.find('#menuText').text(menuItem.MenuText);
+                        tr.find('#cssClass').text(menuItem.CssClass);
+                        tr.find('#target').text(menuItem.Target);
+                        tr.find('#menuOrder').text(menuItem.MenuOrder);
+                    }, "json");
+                tr.find('.edit-mode, .display-mode').toggle();
+            });
+        });
+        //]]>
+    </script>
+}

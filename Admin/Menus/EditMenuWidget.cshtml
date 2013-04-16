@@ -1,0 +1,59 @@
+﻿@using System.Xml.Linq
+@using Microsoft.Web.Helpers
+@{
+    Check.User(Can.ManageWidgets);
+    
+    var menuId = UrlData[0].AsInt();
+    var activeLayerId = UrlData[1].AsInt();
+    var db = Database.Open((string)App.Database);
+    var zoneId = 0;
+    var layerId = 0;
+    var displayOrder = 0;
+
+    var commandText = @"SELECT MenuName, ZoneId, LayerId, DisplayOrder FROM Menus INNER JOIN Widgets ON Menus.MenuId = Widgets.MenuId WHERE Menus.MenuId = @0";
+    var menu = db.QuerySingle(commandText, menuId);
+    if (menu != null) {
+        zoneId = menu.ZoneId;
+        layerId = menu.LayerId;
+        displayOrder = menu.DisplayOrder;
+    }
+    else {
+        Response.Redirect("~/Admin/");
+    }
+    
+    commandText = @"SELECT LayerId, LayerName FROM Layers";
+    var layers = db.Query(commandText).Select(l => new SelectListItem {
+        Value = l.LayerId.ToString(), 
+        Text = l.LayerName
+    });
+
+    var xml = (XDocument) App.ZonesXml;
+
+    var zones = xml.Descendants("zone").Select(z => new SelectListItem {
+        Value = z.Element("id").Value, 
+        Text = z.Element("name").Value
+    });
+
+    Validation.Add("LayerId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    Validation.Add("ZoneId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    Validation.Add("DisplayOrder", Validator.Regex(@"^\d*$", "Must be a number"));
+
+    if (IsPost && Validation.IsValid()) {
+        zoneId = Request["ZoneId"].AsInt();
+        layerId = Request["LayerId"].AsInt();
+        displayOrder = Request["DisplayOrder"].AsInt();
+        var theme = Themes.CurrentTheme;
+        commandText = @"UPDATE Widgets SET ZoneId = @0, LayerId = @1, DisplayOrder = @2, Theme = @3 WHERE MenuId = @4";
+        db.Execute(commandText, zoneId, layerId, displayOrder, theme, menuId);
+        Response.Redirect("~/Admin/Widgets/ManageWidgets/" + activeLayerId);
+    }
+}
+<form method="post">
+    <fieldset>
+        <legend>Manage Menu Widget</legend>
+            @ControlGroup.DropDownList("Select Layer: ", "LayerId", layers, " --Select Layer-- ", layerId)
+            @ControlGroup.DropDownList("Select Zone: ", "ZoneId", zones, " --Select Zone-- ", zoneId)
+            @ControlGroup.TextBox("Display Order: ", "DisplayOrder", displayOrder.ToString(), new {style = "width: 20px"})
+            @ControlGroup.Button()
+    </fieldset>
+</form>

@@ -1,0 +1,89 @@
+﻿@using System.Xml.Linq
+@using Resources;
+@using Microsoft.Web.Helpers
+@{
+    Check.User(Can.ManageWidgets);
+    
+    var db = Database.Open((string) App.Database);
+    var zones = Enumerable.Empty<SelectListItem>();
+    var layers = Enumerable.Empty<SelectListItem>();
+    var htmlWidgets = Enumerable.Empty<SelectListItem>();
+    
+    var commandText = string.Empty;
+
+    var layouts = Directory.GetFiles(Path.Combine(Server.MapPath(Themes.ThemeDirectory), Themes.CurrentTheme, "Layouts")).Select(f => new SelectListItem {
+        Value = Path.GetFileName(f),
+        Text = Path.GetFileName(f)
+    });
+    
+    if (IsPost && !Request["Layout"].IsEmpty()) {
+        var path = Server.MapPath(Themes.GetResourcePath("Zones", Path.GetFileNameWithoutExtension(Request["Layout"]) + ".xml"));
+        var xml = XDocument.Load(path);
+
+        zones = xml.Descendants("zone").Select(z => new SelectListItem {
+            Value = z.Element("id").Value,
+            Text = z.Element("name").Value
+        });
+        
+        commandText = @"SELECT LayerId, LayerName FROM Layers WHERE Layout = @0";
+
+        layers = db.Query(commandText, Request["Layout"]).Select(l => new SelectListItem {
+            Value = l.LayerId.ToString(),
+            Text = l.LayerName
+        });
+        
+        commandText = "SELECT HtmlWidgetId, WidgetName FROM HtmlWidgets ORDER BY WidgetName";
+        htmlWidgets = db.Query(commandText).Select(item => new SelectListItem {
+            Value = item.HtmlWidgetId.ToString(),
+            Text = item.WidgetName
+        }).ToList();
+        
+        Validation.Add("HtmlWidgetId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+        Validation.Add("LayerId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+        Validation.Add("ZoneId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    }
+    
+    if (Request["Action"] == "Save" && Validation.IsValid()) {
+        var htmlWidgetId = Request["HtmlWidgetId"].AsInt();
+        var zoneId = Request["ZoneId"].AsInt();
+        var layerId = Request["LayerId"].AsInt();
+        var displayOrder = Request["DisplayOrder"].AsInt();
+        var theme = Themes.CurrentTheme;
+        var cssClass = Request["CssClass"].OrDbNull();
+        commandText = "INSERT INTO Widgets (ZoneId, LayerId, DisplayOrder, Theme, CssClass, HtmlWidgetId) VALUES (@0, @1, @2, @3, @4, @5)";
+        db.Execute(commandText, zoneId, layerId, displayOrder, theme, cssClass, htmlWidgetId);
+        Response.Redirect("~/Admin/Widgets/ManageWidgets");
+    }
+}
+<form method="post" class="form-horizontal">
+    <fieldset>
+        <legend>Manage HTML Widget</legend>
+    </fieldset>
+    @ControlGroup.DropDownList("Select Layout: ", "Layout", layouts, " --Select Layout-- ", Request["Layout"])
+</form>
+@if (!Request["Layout"].IsEmpty()) {
+    <form method="post" class="form-horizontal">
+        <fieldset>
+            <legend>Manage Html Widget</legend>
+            @ControlGroup.DropDownList("Select Widget: ", "HtmlWidgetId", htmlWidgets, " --Select Widget-- ")
+            @ControlGroup.DropDownList("Select Layer: ", "LayerId", layers, " --Select Layer-- ")
+            @ControlGroup.DropDownList("Select Zone: ", "ZoneId", zones, " --Select Zone-- ")
+            @ControlGroup.TextBox("Display Order: ", "DisplayOrder", textBoxHtmlAttributes: new {style = "width: 20px"})
+            @ControlGroup.TextBox("CSS Class: ", "CssClass", helperText: AdminResource.WidgetCssHelpText)
+            @ControlGroup.Button()
+        </fieldset>
+    </form>
+}
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            $('#Layout').change(function () {
+                if ($(this).val() != '') {
+                    $(this).closest('form').submit();
+                }
+            });
+        })
+        //]]>
+    </script>
+}

@@ -1,0 +1,185 @@
+body {
+    font-size: 90%;
+    font-family: Segoe UI, Trebuchet, Arial, Sans-Serif;
+    color: #232323;
+    padding: 0;
+    margin:0;
+}
+
+label, input, button {
+    font-size: 100%;
+
+}
+
+select, option {
+    font-size: 90%;
+}
+
+textarea {
+
+  
+}
+h1 {
+    margin-left: 20px;
+}
+h4 {
+    font-weight: normal;
+    font-size: 120%;
+}
+
+footer {
+    text-align: right;
+    font-size: 80%;
+}
+
+#logged-in {
+    float: right;
+}
+
+/* NAVIGATION
+---------------------*/
+    
+
+ul.horizontal {
+    list-style-type:none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.horizontal li{
+    display:  inline;
+    float: left;
+    padding-right:  10px;
+}
+
+ul.vertical {
+    list-style-type:none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.vertical-inner {
+    list-style-type:none;
+    margin-left: 20px;
+    padding: 0;
+}
+
+#admin-nav i {
+    padding-right: 8px;
+}
+
+#admin-nav li{
+    padding-bottom: 7px;
+}
+
+/*#admin-nav {
+    float: left;
+    width: 180px;
+}*/
+
+/*#admin-site {
+    padding: 25px 0;
+    font-size: 120%;
+}
+
+*/
+
+/*#admin-content
+{
+    float:left;
+    width: 740px;
+    background-color: #fff;
+}*/
+
+/*.form-grid {
+    padding: 0;
+    margin: 0;
+}*/
+
+
+
+/* Styles for validation helpers
+-----------------------------------------------------------*/
+.field-validation-error
+{
+    color: #ff0000;
+}
+
+.field-validation-valid
+{
+    display: none;
+}
+
+.input-validation-error
+{
+    border: 1px solid #ff0000;
+    background-color: #ffeeee;
+}
+
+.validation-summary-errors
+{
+    font-weight: bold;
+    color: #ff0000;
+}
+
+.validation-summary-valid
+{
+    display: none;
+}
+
+.help-block {
+    font-size: 90%;
+}
+
+.edit-mode {
+    display: none;
+}
+
+/*----------------------------
+   
+ ----------------------------*/
+.page-list {
+    
+}
+.page-details {
+    font-size: 80%;
+}
+
+.page-list, .widget {
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px dotted #a9a9a9;
+}
+
+.page-list h4 {
+    margin-top: 0;
+}
+
+.page-actions, .widget-actions {
+    float: right;
+}
+
+div.page-actions select {
+    height: 25px;
+    margin: 0;
+}
+
+#pageSize {
+    width: 60px;
+    height: 24px;
+    margin: 0;
+}
+
+#datePicker-space {
+    padding: 120px;
+}
+
+.widget {
+    
+}
+
+.inline-control-label {
+    display: inline;
+    margin-bottom: 0;
+    padding-left: 10px;
+}

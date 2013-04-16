@@ -1,0 +1,110 @@
+﻿@using System.Xml.Linq
+@using Microsoft.Web.Helpers
+@{
+    Check.User(Can.ManageWidgets);
+    
+    var selectedLayerId = UrlData[0].IsEmpty() ? Request["LayerId"].AsInt() : UrlData[0].AsInt();
+    var db = Database.Open((string) App.Database);
+    var widgets = Enumerable.Empty<IGrouping<dynamic, dynamic>>();
+    var selectedLayout = Request["Layout"] ?? "_SiteLayout";
+    var commandText = string.Empty;
+    var layers = Enumerable.Empty<SelectListItem>();
+
+    if (!Request["Layout"].IsEmpty()) {
+        commandText = @"SELECT DISTINCT Layers.LayerId, LayerName FROM Layers INNER JOIN Widgets ON Layers.LayerId = Widgets.LayerId WHERE Layers.Layout = @0";
+        layers = db.Query(commandText, selectedLayout).Select(l => new SelectListItem {
+            Value = l.LayerId.ToString(),
+            Text = l.LayerName,
+            Selected = l.LayerId == selectedLayerId
+        });
+    }
+
+    var layouts = Directory.GetFiles(Path.Combine(Server.MapPath(Themes.ThemeDirectory), Themes.CurrentTheme, "Layouts")).Select(f => new SelectListItem {
+        Value = Path.GetFileName(f),
+        Text = Path.GetFileName(f),
+        Selected = selectedLayout == Path.GetFileName(f)
+    });
+
+    
+    var path = Server.MapPath(Themes.GetResourcePath("Zones", Path.GetFileNameWithoutExtension(selectedLayout) + ".xml"));
+    var xml = XDocument.Load(path);
+    var zones = xml.Descendants("zone").Select(z => new { Id = Convert.ToInt32(z.Element("id").Value), Name = z.Element("name").Value});
+    
+    if (!Request["LayerId"].IsEmpty() && !Request["Layout"].IsEmpty()) {
+        commandText = @"SELECT Widgets.WidgetId, Widgets.WidgetName, Widgets.ZoneId, Widgets.DisplayOrder, Widgets.HtmlWidgetId, 
+                        HtmlWidgets.WidgetName As HtmlWidgetName, Widgets.Args, Widgets.MenuId, Menus.MenuName 
+                        FROM Widgets 
+                        LEFT JOIN HtmlWidgets ON Widgets.HtmlWidgetId = HtmlWidgets.HtmlWidgetId
+                        LEFT JOIN Menus ON Widgets.MenuId = Menus.MenuId
+                        WHERE Widgets.LayerId = @0
+                        ORDER BY Widgets.ZoneId, Widgets.DisplayOrder";
+        widgets = db.Query(commandText, selectedLayerId).GroupBy(z => z.ZoneId);
+    }
+}
+
+<form method="post" action="~/Admin/Widgets/ManageWidgets/" class="form-horizontal">
+    <fieldset>
+        <legend>Manage Widgets</legend>  
+        @ControlGroup.DropDownList("Choose Layout", "Layout", layouts, " --Choose Layout-- ")
+        @if (!Request["Layout"].IsEmpty()) {
+            @ControlGroup.DropDownList("Choose Layer", "LayerId", layers, " --Choose Layer-- ")
+        }
+    </fieldset>
+</form>
+<form method="post">
+    <fieldset>
+        @if (widgets.Any()) {
+                  <legend>All Widgets In Layer</legend>
+                  foreach (var group in widgets) {
+                      <h4>@zones.FirstOrDefault(z => z.Id == group.Key).Name (Zone @group.Key)</h4>
+                      foreach (var widget in group) {
+                          if (widget.WidgetName != null) {
+                              <div class="widget">@widget.WidgetName (Folder Widget) 
+                                  <div class="widget-actions">
+                                      <a href="~/Admin/Widgets/EditFolderWidget/@widget.WidgetId/@selectedLayerId">Edit</a> | 
+                                      <a href="~/Admin/Widgets/RemoveWidget/@widget.WidgetId/@selectedLayerId" class="remove">Remove</a>
+                                  </div>
+                              </div>
+                          }
+                          if (widget.HtmlWidgetName != null) {
+                              <div class="widget">
+                                  <div class="widget-actions">
+                                      <a href="~/Admin/Widgets/EditHtmlWidget/@widget.WidgetId/@selectedLayerId">Edit</a> | 
+                                      <a href="~/Admin/Widgets/RemoveWidget/@widget.WidgetId/@selectedLayerId" class="remove">Remove</a>
+                                  </div>
+                                  @widget.HtmlWidgetName (Html Widget) 
+                              </div>
+                          } 
+                          if (widget.MenuName != null) {
+                              <div class="widget">
+                                  <div class="widget-actions">
+                                      <a href="~/Admin/Widgets/EditMenuWidget/@widget.MenuId/@selectedLayerId">Edit</a> | 
+                                      <a href="~/Admin/Widgets/RemoveWidget/@widget.WidgetId/@selectedLayerId" class="remove">Remove</a>
+                                  </div>
+                                  @widget.MenuName (Menu Widget) 
+                              </div>
+                          }
+                      }
+                  }
+              }
+    </fieldset>
+</form>
+
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            $('#Layout').change(function () {
+                $('#LayerId').val('');
+                $(this).closest('form').submit();
+            });
+            $('#LayerId').change(function() {
+                $(this).closest('form').submit();
+            });
+            $('.remove').click(function() {
+                return confirm('Are you sure you want to remove this widget from this layer?');
+            });
+        });
+        //]]>
+    </script>
+}

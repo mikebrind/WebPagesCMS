@@ -1,0 +1,21 @@
+﻿@{
+    Check.User(Can.UploadMedia);
+    
+    if (IsPost) {
+        var file = Request.Files[0];
+        if (file != null) {
+            var filename = file.FileName;
+            var location = Server.MapPath("~/Media/" + UrlData[0]);
+            file.SaveAs(Path.Combine(location, filename));
+            Response.Redirect("~/Admin/ManageMedia");
+        }
+    }
+}
+
+<form method="post" enctype="multipart/form-data">
+    <fieldset>
+        <legend>Add Media to @UrlData[0]</legend>
+        <input type="file" name="file1" />
+        @ControlGroup.Button()
+    </fieldset>
+</form>

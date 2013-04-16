@@ -1,0 +1,14 @@
+﻿@{
+    Check.User(Can.ActivateUser);
+    
+    if (!UrlData[0].IsInt() || !UrlData[1].IsBool()) {
+        Response.SetStatus(HttpStatusCode.BadRequest);
+    }
+    
+    var userId = UrlData[0];
+    var isConfirmed = UrlData[1].AsBool();
+    var db = Database.Open((string) App.Database);
+    var commandText = @"UPDATE webpages_Membership SET IsConfirmed = @0 WHERE UserId = @1";
+    db.Execute(commandText, isConfirmed, userId);
+    Response.Redirect("~/Admin/Users/List");
+}

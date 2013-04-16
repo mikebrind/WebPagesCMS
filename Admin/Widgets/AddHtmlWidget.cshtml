@@ -1,0 +1,79 @@
+﻿@using Resources;
+@{
+    Check.User(Can.AddHtmlWidget);
+    
+    Validation.RequireField("WidgetName");
+    Validation.RequireField("Content");
+    var db = Database.Open((string)App.Database);
+    var commandText = string.Empty;
+    var widgetName = string.Empty;
+    var content = string.Empty;
+    var taken = false;
+    
+    if (IsPost) {
+        widgetName = Request["WidgetName"];
+        content = Request.Unvalidated("Content");
+        var ajax = Request["Ajax"].AsBool();
+
+        if (!ajax) {
+            commandText = @"SELECT COUNT(*) AS TheCount FROM HtmlWidgets WHERE WidgetName = @0";
+            var count = db.QueryValue(commandText, widgetName);
+            if (count > 0) {
+                taken = true;
+            }
+            if (!taken) {
+                var widgets = Directory.GetDirectories(Server.MapPath("~/Widgets/")).Select(d => d.Split('\\').Last()).ToList();
+                if (widgets.Contains(widgetName)) {
+                    taken = true;
+                }
+            }
+        }
+        if (taken) {
+            ModelState.AddError("WidgetName", " That name is already in use");
+        }
+    }
+    if (IsPost && Validation.IsValid()) {
+        commandText = @"INSERT INTO HtmlWidgets (WidgetName, Content) VALUES (@0, @1)";
+        db.Execute(commandText, widgetName, content);
+        Response.Redirect("~/Admin/Widgets/ManageHtmlWidgets/");
+    }
+}
+<form method="post">
+    <fieldset>
+        <legend>Create New HTML Widget</legend>
+        @ControlGroup.TextBox("Widget Name: ", "WidgetName", helperText: AdminResource.WidgetNameHelpText)
+        @ControlGroup.HtmlTextArea("Content: ", "Content", htmlAttributes: new {style = "width: 100%; height: 500px"})
+        @ControlGroup.Button()
+        @Html.Hidden("Ajax")
+    </fieldset>
+</form>
+@section Script{
+      <script type="text/javascript" src="/Scripts/ckeditor/ckeditor.js"></script>
+      <script type="text/javascript">
+      //<![CDATA[
+          $(function () {
+              $('#Ajax').val('true');
+              
+            CKEDITOR.replace('Content');
+              
+            $('#WidgetName').focus(function () {
+                if ($('#duplicate').html(' That name is already in use')) {
+                    $('#duplicate').html('');
+                    $('#WidgetName').val('');
+                };
+            });
+            $('#WidgetName').change(function () {
+                $.getJSON('/Admin/Ajax/CheckWidgetName?name=' + $(this).val(), function (data) {
+                    if (data) {
+                        if (!$('#duplicate').length) {
+                            $('#WidgetName').after('<span id="duplicate"> That name is already in use</span>');
+                        } else {
+                            $('#duplicate').html(' That name is already in use');
+                        }
+                    };
+                });
+            });
+        });
+    //]]>
+    </script>
+}

@@ -1,0 +1,20 @@
+﻿@{
+    var name = Request["name"];
+    var result = false;
+    if(!name.IsEmpty()){
+        var commandText = "SELECT COUNT(*) AS TheCount FROM HtmlWidgets WHERE WidgetName = @0";
+        var db = Database.Open((string)App.Database);
+        var count = db.QueryValue(commandText, name);
+        if(count > 0){
+            result = true;
+        }
+        if(!result){
+            var widgets = Directory.GetDirectories(Server.MapPath("~/Widgets/")).Select(d => d.Split('\\').Last()).ToList();
+            if(widgets.Contains(name)){
+                result = true;   
+            }
+        }
+    }
+    Response.ContentType = "application/json";
+    Json.Write(result, Response.Output);
+}

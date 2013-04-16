@@ -1,0 +1,7 @@
+﻿@{
+    Layout = null;
+    var directory = Directory.GetDirectories(Server.MapPath("~/Media"));
+}
+@foreach (var dir in directory) {
+    <div>@dir</div>
+}

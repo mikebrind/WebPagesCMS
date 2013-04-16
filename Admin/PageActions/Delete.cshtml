@@ -1,0 +1,15 @@
+﻿@{
+    Check.User(Can.DeletePage);
+    
+    var contentId = UrlData[0];
+    if (contentId.IsInt()) {
+        var db = Database.Open((string) App.Database);
+        var commandText = @"SELECT PageId From PageContent WHERE ContentId = @0";
+        var pageId = db.QueryValue(commandText, contentId);
+        commandText = @"DELETE FROM PageContent WHERE PageId = @0";
+        db.Execute(commandText, pageId);
+        commandText = @"DELETE FROM Pages WHERE PageId = @0";
+        db.Execute(commandText, pageId);
+    }
+    Response.Redirect("~/Admin/Pages/List/");
+}

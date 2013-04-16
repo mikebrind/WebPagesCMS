@@ -1,0 +1,41 @@
+﻿@{
+    Check.User(Can.EditUser);
+
+    var userId = UrlData[0];
+    if (!userId.IsInt()) {
+        Response.SetStatus(HttpStatusCode.BadRequest);
+    }
+    
+    Validation.Add("RoleId", Validator.Required(), Validator.Regex(@"^\d*$", "Must be a number"));
+    var commandText = string.Empty;
+    
+    var db = Database.Open((string) App.Database);
+    if (IsPost) {
+        var roleId = Request["RoleId"];
+        commandText = @"UPDATE webpages_UsersInRoles SET RoleId = @0 WHERE UserId = @1";
+        db.Execute(commandText, roleId, userId);
+        Response.Redirect("~/Admin/Users/List");
+    }
+    
+    commandText = @"SELECT RoleId, RoleName FROM webPages_Roles";
+    var roles = db.Query(commandText).Select(r => new SelectListItem {
+        Value = r.RoleId.ToString(),
+        Text = r.RoleName
+    });
+
+    commandText = @"SELECT UserName, RoleId FROM Users INNER JOIN webpages_UsersInRoles ON webpages_UsersInRoles.UserId = Users.UserId WHERE Users.UserId = @0";
+    var user = db.QuerySingle(commandText, userId);
+    if (user == null) {
+        Response.Redirect("~/Admin/Users/List");
+    }
+    
+    
+    
+}
+<form method="post">
+    <fieldset>
+        <legend>Change User Role For @user.UserName</legend>
+        @ControlGroup.DropDownList("Select Role", "RoleId", roles, " --Select Role-- ", user.RoleId)
+        @ControlGroup.Button()
+    </fieldset>
+</form>

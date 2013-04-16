@@ -1,0 +1,64 @@
+﻿@{
+    Check.User(new[] {Can.CreateMediaFolder, Can.DeleteMediaFolder, Can.UploadMedia});
+    
+    var mediaRoot = Server.MapPath("~/Media");
+    if (IsPost && !Request["Folder"].IsEmpty()) {
+        Directory.CreateDirectory(Path.Combine(mediaRoot, Request["Folder"]));
+    }
+    if (IsPost && !Request["Add"].IsEmpty()) {
+        Response.Redirect("~/Admin/AddMedia/" + Request["Add"]);
+    }
+    if (IsPost && !Request["Delete"].IsEmpty()) {
+        Directory.Delete(Path.Combine(mediaRoot, Request["Delete"]), true);
+    }
+    var mediaFolders = Directory.GetDirectories(mediaRoot).Select(f => new {
+        FolderName = f.Split('\\').Last(), 
+        Created = Directory.GetCreationTime(f),
+        LastModified = Directory.GetLastWriteTime(f),
+        TotalFiles = Directory.GetFiles(f).Count()
+    });
+    var grid = new WebGrid(mediaFolders);
+    
+}
+<form method="post" class="form-inline">
+    <fieldset>
+        <legend>Manage Media</legend>
+        @if (Permissions.User(Can.CreateMediaFolder)) {
+            @Html.Label("Add New Folder: ", "Folder")
+            @Html.TextBox("Folder")
+            <button type="submit">Create</button>
+        }
+    </fieldset>
+</form>
+<div>
+    @if (mediaFolders.Any()) {
+        @grid.GetHtml("table",
+                        columns: grid.Columns(
+                        grid.Column("FolderName", "Folder"),
+                        grid.Column("Created"),
+                        grid.Column("LastModified", "Last Modified"),
+                        grid.Column("TotalFiles", "Files"),
+                        grid.Column("", format: @<form method="post" class="form-inline">
+                                                    @if (Permissions.User(Can.DeleteMediaFolder)) {
+                                                        <button name="Delete" value="@item.FolderName" class="btn btn-danger btn-mini">Delete?</button>
+                                                    }
+                                                    @if (Permissions.User(Can.UploadMedia)) {
+                                                        <button name="Add" value="@item.FolderName" class="btn btn-success btn-mini">Add Item</button>
+                                                    }
+                                                 </form>)
+                                                    
+                    )
+        )
+    }
+</div>
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function() {
+            $('.btn-danger').click(function() {
+                return confirm('Are you sure you want to delete this folder?');
+            });
+        });
+        //]]>
+    </script>
+}

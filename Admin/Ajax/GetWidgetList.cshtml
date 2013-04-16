@@ -1,0 +1,38 @@
+﻿@{
+    var widgetType = (WidgetType)Enum.Parse(typeof(WidgetType), Request["widgetId"]);
+
+    var widgets = new List<SelectListItem>();
+    var db = Database.Open((string)App.Database);
+    string commandText;
+    
+    switch (widgetType) {
+        case WidgetType.Folder:
+            var folders = Directory.EnumerateDirectories(Server.MapPath("~/Widgets")).Select(w => w.Split('\\').Last(i => i != "Menu"));
+            widgets = folders.Select(w => new SelectListItem {
+                    Value = w,
+                    Text = w
+                }).OrderBy(w => w.Text).ToList();
+            widgets.Insert(0, new SelectListItem { Text = " -- Choose Folder Widget -- ", Value = "" });
+            break;
+        case WidgetType.Html:
+            commandText = "SELECT HtmlWidgetId, WidgetName FROM HtmlWidgets ORDER BY WidgetName";
+            var htmlWidgets = db.Query(commandText);
+            widgets = htmlWidgets.Select(item => new SelectListItem {
+                    Value = item.HtmlWidgetId.ToString(),
+                    Text = item.WidgetName
+                }).ToList();
+            widgets.Insert(0, new SelectListItem { Text = " -- Choose Html Widget -- ", Value = "" });
+            break;
+        case WidgetType.Menu:
+            commandText = "SELECT MenuId, MenuName FROM Menus ORDER BY MenuName";
+            var menus = db.Query(commandText);
+            widgets = menus.Select(item => new SelectListItem {
+                    Value = item.MenuId.ToString(),
+                    Text = item.MenuName
+                }).ToList();
+            widgets.Insert(0, new SelectListItem { Text = " -- Choose Menu Widget -- ", Value = "" });
+            break;
+    }
+    
+    Json.Write(widgets, Response.Output);
+}

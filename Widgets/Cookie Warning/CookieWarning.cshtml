@@ -1,0 +1,6 @@
+﻿@{
+    var file = File.Exists(Server.MapPath("~/Scripts/cookiewarning.js"));
+}
+@if (file) {
+    <script type="text/javascript" src="~/Scripts/cookiewarning.js"></script>
+}

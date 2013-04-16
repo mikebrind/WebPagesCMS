@@ -1,0 +1,8 @@
+﻿@using System.Web.Routing;
+@using Microsoft.Web.Helpers
+@{
+    App.Database = "WebPagesCMS";
+    RouteTable.Routes.MapWebPageRoute("{*stem}", "~/Page.cshtml");
+    Themes.Initialize("~/Themes/", "Default");
+    WebSecurity.InitializeDatabaseConnection((string)App.Database, "Users", "UserId", "UserName", true);
+}

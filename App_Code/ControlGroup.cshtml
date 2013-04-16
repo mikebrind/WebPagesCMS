@@ -1,0 +1,123 @@
+﻿@helper TextBox(string label, string name, string value = null, object textBoxHtmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new{@class="control-label"})
+        <div class="controls">
+            @Html.TextBox(name, Request[name] ?? value, textBoxHtmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}
+
+@helper TextArea(string label, string name, string value = null, object htmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new{@class="control-label"})
+        <div class="controls">
+            @Html.TextArea(name, Request[name] ?? value, htmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}
+
+@helper HtmlTextArea(string label, string name, string value = null, object htmlAttributes = null, string helperText = null) {
+    <div id="div-@name" class="control-group">
+        @Html.Label(label, name, new{@class="control-label"})
+        <div class="controls">
+            @Html.TextArea(name, Request.Unvalidated(name) ?? value, htmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}
+
+@helper CheckBox(string label, string name, bool isChecked = false, object htmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new {@class="control-label"})
+        <div class="controls">
+            @Html.CheckBox(name, Request[name] == "on" || isChecked, htmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}
+
+@helper InlineCheckBox(string label, string name, bool isChecked = false, object htmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        <div class="controls">
+            @Html.CheckBox(name, Request[name] == "on" || isChecked, htmlAttributes) 
+            @Html.Label(label, name, new {@class="inline-control-label"})
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}
+
+@helper RadioButtonGroup(string label, string name, IEnumerable<string> values, string selectedValue = "Vertical", string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new {@class="control-label"})
+        <div class="controls">
+            @foreach(var value in values){
+                @Html.RadioButton(name, value, (Request[name] == value || (Request[name] == null && selectedValue == value ))) <span>@value </span>
+            }
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+   </div>    
+}
+
+@helper DropDownList(string label, string name, IEnumerable<SelectListItem> items, string defaultOption = null, object selectedValue = null, object htmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new {@class="control-label"})
+        <div class="controls">
+            @Html.DropDownList(name, defaultOption, items, selectedValue, htmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>       
+}
+
+@helper Button(string name = "Action", string value = "Save", string text = "Save", string btnType = "btn-primary"){
+        <div class="control-group">
+            <div class="controls">
+                <button class="btn @btnType" name="@name" value="@value" type="submit">@text</button>
+            </div>
+        </div>
+}
+
+@helper ButtonGroup(string name, string[] value, string[] text, string[] btnType){
+        <div class="control-group">
+            <div class="controls">
+                @for (var i = 0; i < text.Length; i++) {
+                    <button class="btn @btnType[i]" name="@name" value="@value[i]" type="submit">@text[i]</button>
+                }
+            </div>
+        </div>
+}
+
+@helper Password(string label, string name, object htmlAttributes = null, string helperText = null) {
+    <div class="control-group">
+        @Html.Label(label, name, new{@class="control-label"})
+        <div class="controls">
+            @Html.Password(name, null, htmlAttributes)
+            @Html.ValidationMessage(name)
+            @if (helperText != null) {
+                <span class="help-block">@helperText</span>
+            }
+        </div>
+    </div>
+}

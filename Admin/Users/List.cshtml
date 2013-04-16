@@ -1,0 +1,40 @@
+﻿@{
+    Check.User(new[] {Can.EditUser, Can.ActivateUser, Can.DeleteUser});
+    
+    var db = Database.Open((string) App.Database);
+    var commandText = "SELECT Users.UserId, UserName, IsConfirmed FROM Users INNER JOIN webpages_Membership ON Users.UserId = webpages_Membership.UserId";
+    var users = db.Query(commandText);
+    var grid = new WebGrid(users, canPage: false, canSort: false);
+}
+<fieldset>
+    <legend>Manage Users</legend>
+
+@grid.GetHtml("table",
+    columns: grid.Columns(
+        grid.Column("UserName", "User"),
+        grid.Column("", format: @<text>
+                                    @if (Permissions.User(Can.EditUser)) {
+                                        <a href="~/Admin/Users/EditUser/@item.UserId">Edit</a> 
+                                    }
+                                    @if (Permissions.User(Can.EditUser) && (Permissions.User(Can.DeleteUser) || Permissions.User(Can.ActivateUser))) {
+                                        @: |
+                                    }
+                                    @if (Permissions.User(Can.DeleteUser)) {
+                                        <a href="~/Admin/Users/DeleteUser/@item.UserId">Delete</a>
+                                    }
+                                    @if (Permissions.User(Can.DeleteUser) && Permissions.User(Can.ActivateUser)) {
+                                        @: |
+                                    }
+                                    @if (Permissions.User(Can.ActivateUser)) {
+                                        if (item.IsConfirmed == true) {
+                                             <a href="~/Admin/Users/ActivateUser/@item.UserId/False">Deactivate</a>
+                                         }
+                                         else {
+                                             <a href="~/Admin/Users/ActivateUser/@item.UserId/True">Reactivate</a>
+                                         }
+                                    }
+                                 </text>)
+    )
+)
+
+</fieldset>

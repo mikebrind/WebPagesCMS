@@ -1,0 +1,7 @@
+﻿@using Microsoft.Web.Helpers
+@{
+    var args = HttpUtility.ParseQueryString((string)Page.Args);
+
+    var webPropertyId = args["webPropertyId"];
+}
+@Analytics.GetGoogleHtml(webPropertyId)

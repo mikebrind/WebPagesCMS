@@ -1,0 +1,156 @@
+﻿@using System.Xml.Linq
+@using Resources;
+@using Microsoft.Web.Helpers
+@{
+    Check.User(Can.ManageWidgets);
+
+    var db = Database.Open((string)App.Database);
+    var layers = Enumerable.Empty<SelectListItem>();
+    var zones = Enumerable.Empty<SelectListItem>();
+    var infoExists = false;
+    var isChecked = false;
+    IEnumerable<XElement> fields = null;
+    var widget = Request["Widget"];
+    var selectedLayout = Request["Layout"];
+    string helperText = null;
+    object placeHolder = null;
+
+    var layouts = Directory.GetFiles(Path.Combine(Server.MapPath(Themes.ThemeDirectory), Themes.CurrentTheme, "Layouts")).Select(f => new SelectListItem {
+        Value = Path.GetFileName(f),
+        Text = Path.GetFileName(f)
+    });
+
+    var folders = Directory.EnumerateDirectories(Server.MapPath("~/Widgets")).Select(w => w.Split('\\').Last()).Select(w => new SelectListItem {
+        Value = w,
+        Text = w,
+        Selected = w.Equals(widget)
+    }).OrderBy(w => w.Text).ToList();
+    folders.Insert(0, new SelectListItem {
+        Value = "",
+        Text = " -- Choose Folder Widget -- "
+    });
+
+    if (IsPost && !Request["Layout"].IsEmpty()) {
+        var commandText = @"SELECT DISTINCT LayerId, LayerName FROM Layers WHERE Layers.Layout = @0";
+        layers = db.Query(commandText, selectedLayout).Select(l => new SelectListItem {
+            Value = l.LayerId.ToString(),
+            Text = l.LayerName
+        });
+
+        var path = Server.MapPath(Themes.GetResourcePath("Zones", Path.GetFileNameWithoutExtension(selectedLayout) + ".xml"));
+        var xml = XDocument.Load(path);
+        zones = xml.Descendants("zone").Select(z => new SelectListItem {
+            Value = z.Element("id").Value,
+            Text = z.Element("name").Value
+        });
+
+        infoExists = File.Exists(Server.MapPath(Path.Combine("~/Widgets/", widget, "widget.info")));
+
+        if (infoExists) {
+            var info = XDocument.Load(Server.MapPath(Path.Combine("~/Widgets/", widget, "widget.info")));
+            fields = info.Descendants("param");
+            foreach (var field in fields) {
+                var fieldType = field.Descendants("type").FirstOrDefault();
+
+                var widgetName = field.Descendants("name").FirstOrDefault();
+                var required = field.Descendants("required").FirstOrDefault();
+
+                if (required != null && widgetName != null) {
+                    if (required.Value == "true") {
+                        Validation.Add(string.Format("widget-info-{0}", widgetName.Value), Validator.Required());
+                    }
+                }
+                if (fieldType != null && widgetName != null) {
+                    if (fieldType.Value == "int") {
+                        Validation.Add(string.Format("widget-info-{0}", widgetName.Value), Validator.Regex(@"^\d*$", "Numbers only"));
+                    }
+                }
+            }
+
+            Validation.Add("LayerId", Validator.Required(), Validator.Regex(@"^\d*$", "Numbers only"));
+            Validation.Add("ZoneId", Validator.Required(), Validator.Regex(@"^\d*$", "Numbers only"));
+        }
+
+        if (!Request["Action"].IsEmpty() && Validation.IsValid()) {
+            var zoneId = Request["ZoneId"].AsInt();
+            var layerId = Request["LayerId"].AsInt();
+            var displayOrder = Request["DisplayOrder"].AsInt();
+            var theme = Themes.CurrentTheme;
+            var cssClass = Request["CssClass"].IsEmpty() ? null : Request["CssClass"];
+            var args = Request.Form
+                              .Cast<string>().Where(item => item.StartsWith("widget-info-") && !Request[item].IsEmpty())
+                              .Aggregate(string.Empty, (current, item) => current + (item.Replace("widget-info-", string.Empty) + "=" + Request[item] + "&")).Trim(new[] { '&' });
+            commandText = @"INSERT INTO Widgets (WidgetName, ZoneId, LayerId, DisplayOrder, Theme, CssClass, Args) VALUES (@0, @1, @2, @3, @4, @5, @6)";
+            db.Execute(commandText, widget, zoneId, layerId, displayOrder, theme, cssClass, args);
+            Response.Redirect("~/Admin/Widgets/ManageWidgets/" + layerId);
+        }
+    }
+}
+<form method="post" class="form-horizontal">
+    <fieldset>
+        <legend>Manage Folder Widgets</legend>
+        @ControlGroup.DropDownList("Select Folder Widget: ", "Widget", folders)
+    </fieldset>
+</form>
+@if (IsPost) {
+    <div id="widget-details">
+        <form method="post">
+            <fieldset>
+                <legend>Configure @widget Widget</legend>
+                @ControlGroup.DropDownList("Select Layout: ", "Layout", layouts, " --Select Layout-- ", Request["Layout"])
+                @ControlGroup.DropDownList("Select Layer: ", "LayerId", layers, " --Select Layer-- ", Request["LayerId"])
+                @ControlGroup.DropDownList("Select Zone: ", "ZoneId", zones, " --Select Zone-- ", Request["ZoneId"])
+                @ControlGroup.TextBox("Display Order: ", "DisplayOrder", textBoxHtmlAttributes: new { style = "width: 20px" })
+                @ControlGroup.TextBox("CSS Class: ", "CssClass", helperText: AdminResource.WidgetCssHelpText)
+                @if (infoExists) {
+                    foreach (var field in fields) {
+                        var fieldType = field.Descendants("type").FirstOrDefault();
+                        var fieldName = field.Descendants("fieldname").FirstOrDefault();
+                        var paramName = field.Descendants("name").FirstOrDefault();
+                        var defaultValue = field.Descendants("default").FirstOrDefault();
+                        var description = field.Descendants("description").FirstOrDefault();
+                        if (fieldType != null && fieldName != null && paramName != null) {
+                            if (defaultValue != null) {
+                                placeHolder = new { placeholder = string.Format("Default value: {0}", defaultValue.Value) };
+                            }
+                            if (description != null) {
+                                helperText = description.Value;
+                            }
+                            if (fieldType.Value == "string" || fieldType.Value == "int") {
+                    @ControlGroup.TextBox(string.Format("{0}: ", fieldName.Value), string.Format("widget-info-{0}", paramName.Value), null, placeHolder, helperText)
+                            }
+                            if (fieldType.Value == "bool") {
+                                if (defaultValue != null) {
+                                    if (defaultValue.Value == "true") {
+                                        isChecked = true;
+                                    }
+                                }
+                    @ControlGroup.CheckBox(string.Format("{0}: ", fieldName.Value), string.Format("widget-info-{0}", paramName.Value), isChecked, helperText)
+                            }
+                        }
+                    }
+                }
+                @Html.Hidden("Widget", widget)
+                @ControlGroup.Button()
+            </fieldset>
+        </form>
+    </div>
+}
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            $('#Widget').change(function () {
+                if ($(this).val() != '') {
+                    $(this).closest('form').submit();
+                }
+            });
+            $('#Layout').change(function () {
+                if ($(this).val() != '') {
+                    $(this).closest('form').submit();
+                }
+            });
+        })
+        //]]>
+    </script>
+}

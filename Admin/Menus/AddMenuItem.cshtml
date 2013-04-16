@@ -1,0 +1,75 @@
+﻿@{
+    Check.User(Can.AddItemsToMenu);
+    
+    if (!UrlData[0].IsInt()) {
+        Response.SetStatus(HttpStatusCode.BadRequest);
+    }
+    Validation.RequireField("MenuText");
+    Validation.Add("MenuOrder", Validator.Regex(@"^\d*$", "Must be a number"));
+    
+    DynamicRecord page = null;
+    var pageId = Request["PageId"].AsInt();
+    var menuId = UrlData[0].AsInt();
+    var db = Database.Open((string) App.Database);
+    var commandText = @"SELECT PageId, Title FROM Pages WHERE PageId NOT IN (SELECT PageId FROM MenuItems WHERE MenuId = @0)";
+    var pages = db.Query(commandText, menuId).Select(p => new SelectListItem {
+        Value = p.PageId.ToString(), 
+        Text = p.Title, 
+        Selected = p.PageId == pageId
+    });
+    
+    if (IsPost && Request["Action"] == "Select") {
+        commandText = @"SELECT Title, Url FROM Pages WHERE PageId = @0";
+        page = db.QuerySingle(commandText, pageId);
+    }
+
+    if (Request["Action"] == "Select") {
+        commandText = @"SELECT Title, Url FROM Pages WHERE PageId = @0";
+        page = db.QuerySingle(commandText, pageId);
+    }
+    
+    if (Request["Action"] == "Save" && Validation.IsValid()) {
+        var menuText = Request["MenuText"];
+        var menuOrder = Request["MenuOrder"].AsInt();
+        commandText = @"INSERT INTO MenuItems (MenuId, MenuText, MenuOrder, PageId) VALUES (@0, @1, @2, @3)";
+        db.Execute(commandText, menuId, menuText, menuOrder, pageId);
+        Response.Redirect("~/Admin/Menus/MenuManager/" + menuId);
+    }
+    
+}
+
+
+<form method="post" id="page-selector">
+    <fieldset>
+        <legend>Add Item To Menu</legend>
+        @if (!pages.Any()) {
+            <div>All available pages have already been added to the menu.</div>
+        }
+        else {
+            @ControlGroup.DropDownList("Choose page to add: ", "PageId", pages, " --Choose Page-- ")
+            @Html.Hidden("Action", "Select")
+        }
+    </fieldset>
+</form>
+
+@if (page != null) {
+    <form method="post">
+        <fieldset>
+            <legend>Menu Item Details</legend>
+            @ControlGroup.TextBox("Menu Text: ", "MenuText")
+            @ControlGroup.TextBox("Menu Order: ", "MenuOrder", textBoxHtmlAttributes: new { style = "width:20px" })
+            @ControlGroup.Button()
+            @Html.Hidden("PageId", pageId)
+        </fieldset>
+    </form>
+}
+
+@section Script {
+    <script>
+        $(function() {
+            $('#PageId').change(function() {
+                $('#page-selector').submit();
+            });
+        });
+    </script>
+}

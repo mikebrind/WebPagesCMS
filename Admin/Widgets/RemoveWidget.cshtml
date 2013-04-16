@@ -1,0 +1,10 @@
+﻿@{
+    Check.User(Can.ManageWidgets);
+    
+    var activeLayerId = UrlData[1];
+    var widgetId = UrlData[0].AsInt();
+    var db = Database.Open((string) App.Database);
+    var commandText = @"DELETE FROM Widgets WHERE WidgetId = @0";
+    db.Execute(commandText, widgetId);
+    Response.Redirect("~/Admin/Widgets/ManageWidgets/" + activeLayerId);
+}

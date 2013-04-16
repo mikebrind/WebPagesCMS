@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<widget>
+    <name>Twitter Profile</name>
+    <description>Displays the most recent tweets from the specified twitter account</description>
+    <params>
+        <param>
+            <name>userName</name>
+            <fieldname>User Name</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>The Twitter username</description>
+            <required>true</required>
+        </param>
+        <param>
+            <name>id</name>
+            <fieldname>Widget ID</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>The widget ID obtained from Twitter</description>
+            <required>true</required>
+        </param>
+        <param>
+            <name>width</name>
+            <fieldname>Width</fieldname>
+            <type>int</type>
+            <default></default>
+            <description>Set using the standard HTML width attribute on the embed code (units are pixels.)</description>
+            <required />
+        </param>
+        <param>
+            <name>height</name>
+            <fieldname>Height</fieldname>
+            <type>int</type>
+            <default></default>
+            <description>Set using the standard HTML height attribute on the embed code (units are pixels.)</description>
+            <required />
+        </param>
+        <param>
+            <name>theme</name>
+            <fieldname>Theme</fieldname>
+            <type>string</type>
+            <default>dark</default>
+            <description>'dark' and 'light' are the only acceptable values.</description>
+            <required />
+        </param>
+        <param>
+            <name>linkColor</name>
+            <fieldname>Link Color</fieldname>
+            <type>string</type>
+            <default>#87c2ed</default>
+            <description>Set by providing a hex format color e.g. #123abc. Note that some icons in the widget will also appear this color.</description>
+            <required />
+        </param>
+        <param>
+            <name>noheader</name>
+            <fieldname>No Header</fieldname>
+            <type>bool</type>
+            <default>false</default>
+            <description>Hides the timeline header if selected</description>
+            <required />
+        </param>
+        <param>
+            <name>nofooter</name>
+            <fieldname>No Footer</fieldname>
+            <type>bool</type>
+            <default>false</default>
+            <description>Hides the timeline footer / Tweetbox if selected</description>
+            <required />
+        </param>
+        <param>
+            <name>noborders</name>
+            <fieldname>No Borders</fieldname>
+            <type>bool</type>
+            <default>false</default>
+            <description>Removes all borders within the widget (between Tweets, cards, around the widget) if selected</description>
+            <required />
+        </param>
+        <param>
+            <name>transparent</name>
+            <fieldname>Transparent</fieldname>
+            <type>bool</type>
+            <default>default</default>
+            <description>Removes the background color if selected</description>
+            <required />
+        </param>
+        <param>
+            <name>borderColor</name>
+            <fieldname>Border Color</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Change the border color used by the widget. Takes an #abc123 hex format color</description>
+            <required />
+        </param>
+        <param>
+            <name>lang</name>
+            <fieldname>Language</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>The widget language is detected by default from the page, based on the HTML `lang` attribute of your content. You can also set the HTML `lang` attribute on the embed code itself.</description>
+            <required />
+        </param>
+    </params>
+</widget>

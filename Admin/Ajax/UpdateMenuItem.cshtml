@@ -1,0 +1,16 @@
+﻿@{
+    Check.User(Can.EditMenuItems);
+    
+    var menuItemId = Request["MenuItemId"];
+    var menuText = Request["MenuText"];
+    var cssClass = Request["CssClass"];
+    var target = Request["Target"];
+    var menuOrder = Request["MenuOrder"];
+    var db = Database.Open((string) App.Database);
+    var commandText = "UPDATE MenuItems SET MenuText = @0, CssClass = @1, Target = @2, MenuOrder = @3 WHERE MenuItemId = @4";
+    db.Execute(commandText, menuText, cssClass, target, menuOrder, menuItemId);
+    commandText = "SELECT MenuText, CssClass, Target, MenuOrder FROM MenuItems WHERE MenuItemId = @0";
+    var menuItem = db.QuerySingle(commandText, menuItemId);
+    Response.ContentType = "application/json";
+    Json.Write(menuItem, Response.Output);
+}

@@ -1,0 +1,27 @@
+nav.horizontal ul{
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav.horizontal ul li{
+    display:  inline;
+    float: left;
+    padding-right:  10px;
+}
+
+header h1 {
+    color: darkcyan;
+}
+
+footer {
+    text-align: center;
+}
+
+.main-menu li{
+    padding-bottom: 20px;
+}
+
+.map {
+    float: right;
+}

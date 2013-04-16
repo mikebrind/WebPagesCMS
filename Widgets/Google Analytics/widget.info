@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<widget>
+    <name>Google Analytics</name>
+    <description>Helper for including Google Analytics tracking code</description>
+    <params>
+        <param>
+            <name>webPropertyId</name>
+            <fieldname>Web Property ID</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>The Google Analytics identifier for your tracker code</description>
+            <required>true</required>
+        </param>
+    </params>
+</widget>

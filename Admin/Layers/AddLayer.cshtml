@@ -1,0 +1,32 @@
+﻿@using Microsoft.Web.Helpers
+@using Resources;
+@{
+    Check.User(Can.AddLayer);
+    
+    Validation.Add("LayerName", Validator.Required("You must provide a name"));
+    Validation.Add("Layout", Validator.Required("You must select a layout"));
+
+    var selectedLayout = Request["Layout"];
+    var layouts = Directory.GetFiles(Path.Combine(Server.MapPath(Themes.ThemeDirectory), Themes.CurrentTheme, "Layouts")).Select(f => new SelectListItem {
+        Value = Path.GetFileName(f),
+        Text = Path.GetFileName(f)
+    });
+    
+    if(IsPost && Validation.IsValid()) {
+        var layerName = Request["LayerName"];
+        var description = Request["Description"];
+        var db = Database.Open((string)App.Database);
+        var commandText = @"INSERT INTO Layers (LayerName, Description, Layout) VALUES (@0, @1, @2)";
+        db.Execute(commandText, layerName, description, selectedLayout);
+        Response.Redirect("~/Admin/Layers/ManageLayers");
+    }
+}
+<form method="post">
+    <fieldset>
+        <legend>Add New Layer</legend>
+        @ControlGroup.DropDownList("Layout: ", "Layout", layouts, " --Select Layout-- ", selectedLayout)
+        @ControlGroup.TextBox("Layer Name: ", "LayerName")
+        @ControlGroup.TextArea("Description: ", "Description", htmlAttributes: new {style = "width: 100%; height: 200px"}, helperText: AdminResource.LayerDescriptionHelpText)
+        @ControlGroup.Button()
+    </fieldset>
+</form>

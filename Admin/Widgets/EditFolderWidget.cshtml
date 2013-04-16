@@ -1,0 +1,118 @@
+﻿@using System.Collections.Specialized
+@using System.Xml.Linq
+@using Microsoft.Web.Helpers
+@using Resources
+@{
+    Check.User(Can.ManageWidgets);
+    
+    var widgetId = UrlData[0].AsInt();
+    var isChecked = false;
+    string helperText = null;
+    object placeHolder = null;
+    IEnumerable<XElement> fields = null;
+    var db = Database.Open((string)App.Database);
+    var commandText = @"SELECT WidgetName, ZoneId, DisplayOrder, CssClass, Args, LayerId FROM Widgets WHERE WidgetId = @0";
+    var widget = db.QuerySingle(commandText, widgetId);
+    
+    if (widget == null) {
+        Response.Redirect("~/Admin/");
+    }
+
+    NameValueCollection args = null;
+    if (widget.Args != null) {
+        args = HttpUtility.ParseQueryString((string)widget.Args);
+    }
+
+    commandText = @"SELECT LayerId, LayerName FROM Layers";
+    var layers = db.Query(commandText).Select(l => new SelectListItem {
+        Value = l.LayerId.ToString(),
+        Text = l.LayerName,
+        Selected = l.LayerId == widget.LayerId
+    });
+
+    var xml = (XDocument)App.ZonesXml;
+    var zones = xml.Descendants("zone").Select(z => new SelectListItem {
+        Value = z.Element("id").Value,
+        Text = z.Element("name").Value,
+        Selected = z.Element("id").Value == widget.ZoneId.ToString()
+    });
+
+    var infoExists = File.Exists(Server.MapPath(Path.Combine("~/Widgets/", widget.WidgetName, "widget.info")));
+    if (infoExists) {
+        var info = XDocument.Load(Server.MapPath(Path.Combine("~/Widgets/", widget.WidgetName, "widget.info")));
+        fields = info.Descendants("param");
+        foreach (var field in fields) {
+            var fieldType = field.Descendants("type").FirstOrDefault();
+
+            var widgetName = field.Descendants("name").FirstOrDefault();
+            var required = field.Descendants("required").FirstOrDefault();
+
+            if (required != null && widgetName != null) {
+                if (required.Value == "true") {
+                    Validation.Add(string.Format("widget-info-{0}", widgetName.Value), Validator.Required());
+                }
+            }
+            if (fieldType != null && widgetName != null) {
+                if (fieldType.Value == "int") {
+                    Validation.Add(string.Format("widget-info-{0}", widgetName.Value), Validator.Regex(@"^\d*$", "Numbers only"));
+                }
+            }
+        }
+
+    }
+    if (IsPost && Validation.IsValid()) {
+        var zoneId = Request["ZoneId"].AsInt();
+        var layerId = Request["LayerId"].AsInt();
+        var displayOrder = Request["DisplayOrder"].AsInt();
+        var theme = Themes.CurrentTheme;
+        var cssClass = Request["CssClass"].OrDbNull();
+        var newArgs = Request.Form
+                          .Cast<string>().Where(item => item.StartsWith("widget-info-") && !Request[item].IsEmpty())
+                          .Aggregate(string.Empty, (current, item) => current + (item.Replace("widget-info-", string.Empty) + "=" + Request[item] + "&")).Trim(new[] { '&' });
+        commandText = @"UPDATE Widgets SET ZoneId = @0, LayerId = @1, DisplayOrder = @2, Theme = @3, CssClass = @4, Args = @5 WHERE WidgetId = @6";
+        db.Execute(commandText, zoneId, layerId, displayOrder, theme, cssClass, newArgs, widgetId);
+        Response.Redirect("~/Admin/Widgets/ManageWidgets/" + layerId);
+    }
+}
+<div id="widget-details">
+    <form method="post">
+        <fieldset>
+            <legend>Configure @widget.WidgetName Widget</legend>
+            @ControlGroup.DropDownList("Select Layer: ", "LayerId", layers, " --Select Layer-- ")
+            @ControlGroup.DropDownList("Select Zone: ", "ZoneId", zones, " --Select Zone-- ")
+            @ControlGroup.TextBox("Display Order: ", "DisplayOrder", textBoxHtmlAttributes: new { style = "width: 20px" })
+            @ControlGroup.TextBox("CSS Class: ", "CssClass", helperText: AdminResource.WidgetCssHelpText)
+            @if (infoExists) {
+                foreach (var field in fields) {
+                    var fieldType = field.Descendants("type").FirstOrDefault();
+                    var fieldName = field.Descendants("fieldname").FirstOrDefault();
+                    var paramName = field.Descendants("name").FirstOrDefault();
+                    var defaultValue = field.Descendants("default").FirstOrDefault();
+                    var description = field.Descendants("description").FirstOrDefault();
+                    if (fieldType != null && fieldName != null && paramName != null) {
+                        if (defaultValue != null) {
+                            placeHolder = new { placeholder = string.Format("Default value: {0}", defaultValue.Value) };
+                        }
+                        if (description != null) {
+                            helperText = description.Value;
+                        }
+                        if (fieldType.Value == "string" || fieldType.Value == "int") {
+                @ControlGroup.TextBox(string.Format("{0}: ", fieldName.Value), string.Format("widget-info-{0}", paramName.Value), args != null ? args[paramName.Value] : null, placeHolder, helperText)
+                        }
+                        if (fieldType.Value == "bool") {
+                            if (args != null) {
+                                if (args[paramName.Value] == "on") {
+                                    isChecked = true;
+                                }
+                            }
+                                
+                @ControlGroup.CheckBox(string.Format("{0}: ", fieldName.Value), string.Format("widget-info-{0}", paramName.Value), isChecked, helperText)
+                        }
+                    }
+                }
+            }
+            @Html.Hidden("Widget", widget)
+            @ControlGroup.Button()
+        </fieldset>
+    </form>
+</div>

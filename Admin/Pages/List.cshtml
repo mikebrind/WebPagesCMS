@@ -1,0 +1,200 @@
+﻿@{
+    Check.User(new[]{Can.EditPage, Can.PublishPage, Can.DeletePage, Can.ArchivePage});
+    
+    var pageSize = Request["PageSize"].IsInt() ? Request["PageSize"].AsInt() : 10;
+    var includeArchived = Request["IncludeArchived"].AsBool();
+    var pageNo = UrlData[0].IsInt() ? UrlData[0].AsInt() : 1;
+    var offset = (pageNo - 1) * pageSize;
+    var db = Database.Open((string) App.Database);
+
+    var commandText = @"SELECT COUNT(1) FROM Pages";
+    var count = (int)db.QueryValue(commandText);
+    
+    var totalPages = count/pageSize;        
+    if(count % pageSize > 0){
+        totalPages += 1;
+    }
+
+    commandText = @"SELECT Pages.PageId, Pages.DateCreated, Url, Title, ContentId, Content, Published FROM Pages 
+                    INNER JOIN PageContent ON Pages.PageId = PageContent.PageId 
+                    WHERE Pages.PageId IN 
+                    (SELECT PageId FROM Pages ";
+    if(!includeArchived) {
+        commandText += "WHERE DateArchived IS NULL ";
+    } 
+    commandText += "ORDER BY PageId DESC OFFSET @0 ROWS FETCH NEXT @1 ROWS  ONLY) ORDER BY Pages.DateCreated DESC";
+
+    var pages = db.Query(commandText, offset, pageSize).GroupBy(p => p.PageId);
+
+    var draftActions = new List<string> {"\"Preview\""};
+    if(Permissions.User(Can.EditPage)) {
+        draftActions.Add("\"Edit\"");
+    }
+    if (Permissions.User(Can.PublishPage)) {
+        draftActions.Add("\"Publish Now\"");
+        draftActions.Add("\"Publish Later\"");
+    }
+    if (Permissions.User(Can.ArchivePage)) {
+        draftActions.Add("\"Archive\"");
+        draftActions.Add("\"Unarchive\"");
+    }
+    if (Permissions.User(Can.DeletePage)) {
+        draftActions.Add("\"Delete\"");
+    }
+
+    var publishedActions = new List<string>();
+    if(Permissions.User(Can.EditPage)) {
+        publishedActions.Add("\"Edit\"");
+    }
+    if (Permissions.User(Can.PublishPage)) {
+        publishedActions.Add("\"Unpublish\"");
+        publishedActions.Add("\"Republish Later\"");
+    }
+    if (Permissions.User(Can.ArchivePage)) {
+        publishedActions.Add("\"Archive\"");
+        publishedActions.Add("\"Unarchive\"");
+    }
+    if (Permissions.User(Can.DeletePage)) {
+        publishedActions.Add("\"Delete\"");
+    }
+
+}
+<form>
+    <fieldset>
+        <legend>Pages</legend>
+        <div id="options"> Items per page: 
+            <select name="PageSize" id="pageSize">
+                <option selected="@(Request["PageSize"] == "10")">10</option>
+                <option selected="@(Request["PageSize"] == "20")">20</option>
+                <option selected="@(Request["PageSize"] == "50")">50</option>
+                <option selected="@(Request["PageSize"] == "100")">100</option>
+            </select>
+            
+            @Html.Label("Include archived", "IncludeArchived", new{ style= "display:inline;" }) 
+            @Html.CheckBox("IncludeArchived", includeArchived, new{ @value = "true" })
+            <button class="btn btn-info btn-mini" type="submit">Apply</button>
+
+        </div>
+        @foreach (var page in pages) {
+            <div class="page-list">
+                <div class="page-actions">
+                    @{
+                        var draftList = page.Where(p => p.Published == null).Select(p => new SelectListItem {
+                            Value = p.ContentId.ToString(),
+                            Text = "Draft"
+                        });
+                        var publishedList = page.Where(p => p.Published != null).OrderByDescending(p => p.Published).Select(p => new SelectListItem {
+                            Value = p.ContentId.ToString(),
+                            Text = p.Published > DateTime.Now ? "(" + p.Published.ToString("F") + ")" : p.Published.ToString("F")
+                        });
+                        var versionsList = draftList.Concat(publishedList);
+                    }
+                    
+                    @Html.DropDownList("Version" + page.First().PageId, "--Select Version--", versionsList)
+                    @Html.DropDownList("Action" + page.First().PageId, "--Select Action--", Enumerable.Empty<SelectListItem>(), new { disabled = "disabled" })
+                </div>
+
+                <h4>@page.First().Title</h4>
+                <div class="page-details">
+                    Created: @page.First().DateCreated.ToString("f") | Most recent version: @page.Last().DateCreated.ToString("f") | Total versions: @page.Count()
+                </div>
+                </div>
+        }
+    </fieldset>
+</form>
+@if (totalPages != 1) {
+    <div class="pagination">
+        <ul>
+            @for (var i = 1; i < totalPages + 1; i++) {
+                <li><a href="/Admin/Pages/List/@i">@i</a></li>
+            }
+        </ul>
+    </div>
+}
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function () {
+            var contentId;
+            var pageId;
+            $('select[name^="Version"]').change(function () {
+                contentId = $(this).val();
+                var dt = $(this).find("option:selected").text();
+                pageId = $(this).attr('name').replace('Version', '');
+                var actionSelect = $('#Action' + pageId);
+                var draftActions = [@Html.Raw(string.Join(",", draftActions))];
+                var publishedActions = [@Html.Raw(string.Join(",", publishedActions))];
+                if (dt != "Draft") {
+                    if (dt.indexOf("(") < 0) {
+                        actionSelect.removeAttr('disabled').empty().append(
+                            $('<option/>')
+                                    .attr('value', '')
+                                    .text('--Select Action--')
+                        );
+                        $.each(publishedActions, function(index, action) {
+                            actionSelect.append(
+                                $('<option/>')
+                                    .attr('value', action)
+                                    .text(action)
+                            );
+                        });
+                    } else {
+                        actionSelect.removeAttr('disabled').empty().append(
+                            $('<option/>')
+                                    .attr('value', '')
+                                    .text('--Select Action--')
+                        );
+                        $.each(draftActions, function(index, action) {
+                            actionSelect.append(
+                                $('<option/>')
+                                    .attr('value', action)
+                                    .text(action)
+                            );
+                        });
+                    }
+                } else {
+                    actionSelect.removeAttr('disabled').empty().append(
+                            $('<option/>')
+                                    .attr('value', '')
+                                    .text('--Select Action--')
+                        );
+                    $.each(draftActions, function(index, action) {
+                        actionSelect.append(
+                            $('<option/>')
+                                .attr('value', action)
+                                .text(action)
+                        );
+                    });
+                }
+            });
+            $('select[name^="Action"]').change(function() {
+                var action = $(this).find("option:selected").text();
+                if (action == "Preview") {
+                    window.open('/Render/Preview/' + contentId, '_blank');
+                }
+                if (action == "Edit" || action == "Publish Later" || action == "Republish Later") {
+                    location.href = '/Admin/Pages/Page/' + contentId;
+                }
+                if (action == "Publish Now") {
+                    location.href = '/Admin/PageActions/PublishNow/' + contentId;
+                }
+                if (action == "Unpublish") {
+                    location.href = '/Admin/PageActions/UnPublish/' + contentId;
+                }
+                if (action == "Archive") {
+                    location.href = '/Admin/PageActions/Archive/' + pageId;
+                }
+                if (action == "Unarchive") {
+                    location.href = '/Admin/PageActions/UnArchive/' + pageId;
+                }
+                if (action == "Delete") {
+                    if (confirm('Are you sure you want to delete this item?')) {
+                        location.href = '/Admin/PageActions/Delete/' + contentId;  
+                    }
+                }
+            });
+        });
+    //]]>
+    </script>
+}
+

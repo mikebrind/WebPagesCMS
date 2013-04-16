@@ -1,0 +1,48 @@
+﻿@{
+    var db = Database.Open((string) App.Database);
+    var widgets = (IOrderedEnumerable<dynamic>)Page.Widgets;
+}
+
+@if (widgets.Any()) {
+    foreach(var widget in widgets){
+        if ((WidgetType)widget.WidgetType == WidgetType.Html && widget.ZoneId == Page.ZoneId) {
+            <div class="@widget.CssClass">
+                @Html.Raw(widget.Content)
+            </div>
+        }
+        if ((WidgetType)widget.WidgetType == WidgetType.Folder && widget.ZoneId == Page.ZoneId) {
+            if (Directory.Exists(Server.MapPath(string.Format("~/Widgets/{0}", widget.WidgetName)))) {
+                var files = Directory.GetFiles(Server.MapPath(string.Format("~/Widgets/{0}", (string) widget.WidgetName)));
+                if (files.Any()) {
+                    var file = files.FirstOrDefault(f => Path.GetExtension(f) == ".cshtml");
+                    if (file != null) {
+                        <div class="@widget.CssClass">
+                            @RenderPage(string.Format("~/Widgets/{0}/{1}", widget.WidgetName, Path.GetFileName(file)), new { Args = widget.Args })
+                        </div>
+                    }
+                }
+            }
+        }
+        if ((WidgetType)widget.WidgetType == WidgetType.Menu && widget.ZoneId == Page.ZoneId) {
+            var commandText = @"SELECT MenuText, Menus.CssClass AS MenuCSS, MenuItems.CssClass AS MenuItemCSS, Url, Target, Orientation, MenuOrder 
+                            FROM MenuItems 
+                            INNER JOIN Menus ON MenuItems.MenuId = Menus.MenuId 
+                            INNER JOIN Pages ON MenuItems.PageId = Pages.PageId
+                            INNER JOIN PageContent ON MenuItems.PageId = PageContent.PageId
+                            WHERE Menus.MenuName = @0 AND MenuItems.PageId IN 
+                            (SELECT PageId FROM PageContent WHERE PageId IN (SELECT PageId FROM PageContent WHERE Published < GetDate())) 
+                            GROUP BY MenuText, Menus.CssClass, MenuItems.CssClass, Url, Target, Orientation, MenuOrder 
+                            ORDER BY MenuOrder";
+            var menu = db.Query(commandText, (string)widget.WidgetName);
+            if(menu.Any()){
+                <nav class="@menu.First().Orientation.ToLower()" >
+                    <ul class="@menu.First().MenuCSS">
+                    @foreach(var item in menu){
+                        <li @(item.MenuItemCSS != null ? Html.Raw(string.Format("class=\"{0}\"", item.MenuItemCSS)) : null)><a href="~/@item.Url">@item.MenuText</a></li>
+                    }
+                    </ul>
+                </nav>
+            }
+        }
+    }
+}

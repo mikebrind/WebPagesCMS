@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<widget>
+    <name>Flash Video</name>
+    <description>Helper for displaying Flash video</description>
+    <params>
+        <param>
+            <name>path</name>
+            <fieldname>Path</fieldname>
+            <type>string</type>
+            <default></default>
+            <description>Location of SWF file</description>
+            <required>true</required>
+        </param>
+        <param>
+            <name>width</name>
+            <fieldname>Width</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Width of SWF content in pixels</description>
+            <required />
+        </param>
+        <param>
+            <name>height</name>
+            <fieldname>Height</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Height of swf content in pixels</description>
+            <required />
+        </param>
+        <param>
+            <name>play</name>
+            <fieldname>Play</fieldname>
+            <type>bool</type>
+            <default>true</default>
+            <description>Specifies whether a timeline-based SWF file begins playing immediately on loading in the browser.</description>
+            <required />
+        </param>
+        <param>
+            <name>loop</name>
+            <fieldname>Loop</fieldname>
+            <type>bool</type>
+            <default>true</default>
+            <description>Specifies whether a timeline-based SWF file repeats indefinitely or stops when it reaches the last frame. </description>
+            <required />
+        </param>
+        <param>
+            <name>menu</name>
+            <fieldname>Menu</fieldname>
+            <type>bool</type>
+            <default>true</default>
+            <description>Specifies if movie playback controls are available in the Flash Player context menu</description>
+            <required />
+        </param>
+        <param>
+            <name>bgColor</name>
+            <fieldname>Background Color</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Hexadecimal RGB value in the format #RRGGBB. Specifies the background color of the SWF content. Use this attribute to override the background color (Stage color) setting specified in the SWF file</description>
+            <required />
+        </param>
+        <param>
+            <name>quality</name>
+            <fieldname>Quality</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Possible values: low, autolow, autohigh, medium, high, best. Specifies the display list Stage rendering quality</description>
+            <required />
+        </param>
+        <param>
+            <name>scale</name>
+            <fieldname>Scale</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Possible values: showall, noborder, exactfit, noscale. Specifies how Flash Player scales SWF content to fit the pixel area specified by the OBJECT or EMBED tag</description>
+            <required />
+        </param>
+        <param>
+            <name>windowMode</name>
+            <fieldname>Window Mode</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Possible values: window, direct, opaque, transparent, gpu. Sets the Window Mode property of the SWF file for transparency, layering, positioning, and rendering in the browser. If this attribute is omitted, the default value is "window"</description>
+            <required />
+        </param>
+        <param>
+            <name>baseUrl</name>
+            <fieldname>Base URL</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description>Specifies the base directory or URL used to resolve all relative path statements in the SWF file. This attribute is helpful when your SWF file is kept in a different directory from your other files.</description>
+            <required />
+        </param>
+        <param>
+            <name>version</name>
+            <fieldname>Version</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description></description>
+            <required />
+        </param>
+        <param>
+            <name>options</name>
+            <fieldname>Options</fieldname>
+            <type>object</type>
+            <default>null</default>
+            <description></description>
+            <required />
+        </param>
+        <param>
+            <name>htmlAttributes</name>
+            <fieldname>HTML Attributes</fieldname>
+            <type>object</type>
+            <default>null</default>
+            <description></description>
+            <required />
+        </param>
+        <param>
+            <name>embedName</name>
+            <fieldname>Embed Name</fieldname>
+            <type>string</type>
+            <default>null</default>
+            <description></description>
+            <required />
+        </param>
+    </params>
+</widget>

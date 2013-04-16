@@ -1,0 +1,57 @@
+﻿@{
+    Check.User(Can.ManageRolesPermissions);
+    
+    var db = Database.Open((string) App.Database);
+    
+    var commandText = @"SELECT RoleId, RoleName FROM webPages_Roles";
+    var roles = db.Query(commandText).Select(r => new SelectListItem {
+        Value = r.RoleId.ToString(),
+        Text = r.RoleName
+    });
+
+    var permissionsInRole = new List<string>();
+    var roleId = Request["RoleId"];
+    
+    commandText = @"SELECT PermissionId, Description, Area FROM Permissions";
+    var permissions = db.Query(commandText).GroupBy(p => p.Area);
+
+    if (IsPost && !Request["Action"].IsEmpty()) {
+        commandText = @"DELETE FROM RolesPermissions WHERE RoleId = @0";
+        db.Execute(commandText, roleId);
+        foreach (var permission in Request["Permissions"].Split(',')) {
+            commandText = @"INSERT INTO RolesPermissions (RoleId, PermissionId) VALUES (@0, @1)";
+            db.Execute(commandText, roleId, permission);
+        }
+    }
+    
+    if (IsPost && !roleId.IsEmpty()) {
+        commandText = @"SELECT PermissionId FROM RolesPermissions WHERE RoleId = @0";
+        var data = db.Query(commandText, roleId).Select(p => p.PermissionId);
+        permissionsInRole.AddRange(data.Select(item => item.ToString()).Cast<string>());
+    }
+    
+}
+<form method="post">
+    <fieldset>
+        <legend>Manage Permissions for Role</legend>
+        @ControlGroup.DropDownList("Select Role: ", "RoleId", roles, " --Select Role-- ", roleId)
+        @foreach (var group in permissions) {
+            <h3>@group.Key</h3>
+            foreach (var permission in group) {
+                @ControlGroup.InlineCheckBox(permission.Description, "Permissions", permissionsInRole.Contains(permission.PermissionId.ToString()), new {@value = permission.PermissionId })
+            }
+        }
+        @ControlGroup.Button()
+    </fieldset>
+</form>
+@section Script {
+    <script type="text/javascript">
+        //<![CDATA[
+        $(function() {
+            $('#RoleId').change(function() {
+                $(this).closest('form').submit();
+            });
+        });
+        //]]>
+    </script>
+}

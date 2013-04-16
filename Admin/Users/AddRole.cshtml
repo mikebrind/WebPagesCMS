@@ -1,0 +1,19 @@
+﻿@{
+    Check.User(Can.CreateRole);
+    
+    Validation.RequireField("RoleName");
+    
+    if (IsPost && Validation.IsValid()) {
+        var roleName = Request["RoleName"];
+        Roles.CreateRole(roleName);
+        Response.Redirect("~/Admin/Users/RolePermissions/");
+    }
+}
+
+<form method="post">
+    <fieldset>
+        <legend>Add Role</legend>
+        @ControlGroup.TextBox("Role Name", "RoleName")
+        @ControlGroup.Button()
+    </fieldset>
+</form>

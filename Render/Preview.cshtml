@@ -1,0 +1,33 @@
+﻿@using Microsoft.Web.Helpers
+@{
+    Layout = Themes.GetResourcePath("Layouts", "_SiteLayout.cshtml");
+    var contentId = UrlData[0];
+
+    var db = Database.Open((string)App.Database);
+    
+    var commandText = @"SELECT Pages.PageId, MetaDescription, MetaKeywords, PageContent.Content 
+                        FROM Pages INNER JOIN PageContent ON Pages.PageId = PageContent.PageId 
+                        WHERE ContentId = @0";
+    var page = db.QuerySingle(commandText, contentId);
+    if (page != null) {
+        Page.PageId = page.PageId;
+    }
+    else {
+        Response.SetStatus(HttpStatusCode.NotFound);
+    }
+}
+
+@if(page != null){
+    @Html.Raw(page.Content)
+}
+
+@section Meta{
+    @if (page != null) {
+        if (page.MetaDescription != null) {
+            <meta name="description" content="@page.MetaDescription" />
+        }
+        if (page.MetaKeywords != null) {
+            <meta name="keywords" content="@page.MetaKeywords" />
+        }
+    }
+}
